@@ -164,7 +164,7 @@ class DQFramework:
                 F.mean("NET_AMOUNT_USD").alias("mu"),
                 F.stddev("NET_AMOUNT_USD").alias("sigma"),
             ).collect()[0]
-            mu, sigma = float(stats["mu"] or 0), float(stats["sigma"] or 1)
+            mu, sigma = float(stats["MU"] or 0), float(stats["SIGMA"] or 1)
             outliers  = df.filter(
                 F.abs(F.col("NET_AMOUNT_USD") - F.lit(mu)) > F.lit(3 * sigma)
             ).count()
@@ -197,7 +197,7 @@ class DQFramework:
         log.info(f"    {'✅' if rate >= 95 else '⚠️ '} Load lag <{max_lag_hours}h: {rate:.1f}% ({late:,} late)")
 
         r = [make_result(self.batch_id, source, region, table,
-                         "TIMELINESS", f"LOAD_LAG_UNDER_{int(max_lag_hours)}H",
+                         "TIMELINESS", "LOAD_LAG_CHECK",
                          total, total-late, late, 0, rate)]
         self._flush(r)
         return r
@@ -245,7 +245,7 @@ class DQFramework:
                   (BATCH_ID, SOURCE_SYSTEM, SOURCE_REGION, TARGET_TABLE,
                    DAMA_DIMENSION, RULE_NAME, RECORDS_CHECKED, RECORDS_PASSED,
                    RECORDS_FAILED, RECORDS_QUARANTINED, PASS_RATE)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
             """, rows)
         except Exception as e:
             log.warning(f"Audit flush failed (table may not exist yet): {e}")
@@ -262,7 +262,7 @@ class DQFramework:
         log.info(f"DAMA 6-Dimension DQ  source={source}  batch={self.batch_id}")
         log.info(f"{'='*55}")
 
-        df = self.session.table("VERTIV_CURATED.SALES.SALES_ORDER").filter(
+        df = self.session.table("VERTIV_CURATED.SALES.DT_SILVER_ORDER_SAP").filter(
             F.col("SOURCE_SYSTEM") == source
         )
         n = df.count()
