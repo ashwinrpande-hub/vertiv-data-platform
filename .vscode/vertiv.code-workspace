@@ -1,0 +1,107 @@
+{
+  "folders": [{ "path": ".." }],
+  "settings": {
+    "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+    "python.terminal.activateEnvironment": true,
+    "[python]": {
+      "editor.defaultFormatter": "ms-python.black-formatter",
+      "editor.formatOnSave": true
+    },
+    "editor.tabSize": 4,
+    "editor.rulers": [120],
+    "files.trimTrailingWhitespace": true,
+    "git.autofetch": true,
+    "files.exclude": {
+      "**/__pycache__": true, "**/.pytest_cache": true,
+      "**/.venv": true, "**/data/*.csv": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.black-formatter",
+      "Snowflake.snowflake-vsc",
+      "eamodio.gitlens",
+      "github.vscode-github-actions",
+      "dotenv.dotenv-vscode",
+      "inferrinizzard.prettier-sql-vscode"
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "1. Deploy SQL — dry run",
+        "type": "python", "request": "launch",
+        "program": "${workspaceFolder}/scripts/deploy.py",
+        "args": [],
+        "envFile": "${workspaceFolder}/.env",
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "2. Deploy SQL — EXECUTE",
+        "type": "python", "request": "launch",
+        "program": "${workspaceFolder}/scripts/deploy.py",
+        "args": ["--execute"],
+        "envFile": "${workspaceFolder}/.env",
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "3. Generate data (small)",
+        "type": "python", "request": "launch",
+        "program": "${workspaceFolder}/python/data_generator/data_generator.py",
+        "args": ["--rows","1000","--customers","100","--output","./data"],
+        "envFile": "${workspaceFolder}/.env",
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "4. Generate + Load to Snowflake",
+        "type": "python", "request": "launch",
+        "program": "${workspaceFolder}/python/data_generator/data_generator.py",
+        "args": ["--rows","5000","--customers","500","--output","./data","--load"],
+        "envFile": "${workspaceFolder}/.env",
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "5. DQ Framework — ALL",
+        "type": "python", "request": "launch",
+        "program": "${workspaceFolder}/python/snowpark/dq_framework.py",
+        "args": ["--source","ALL"],
+        "envFile": "${workspaceFolder}/.env",
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "6. Feature Engineering",
+        "type": "python", "request": "launch",
+        "program": "${workspaceFolder}/python/snowpark/feature_engineering.py",
+        "envFile": "${workspaceFolder}/.env",
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "7. Streamlit Dashboard (local)",
+        "type": "python", "request": "launch",
+        "module": "streamlit",
+        "args": ["run","${workspaceFolder}/python/streamlit/streamlit_dq_dashboard.py"],
+        "envFile": "${workspaceFolder}/.env",
+        "console": "integratedTerminal"
+      }
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Setup: Create venv & install deps",
+        "type": "shell",
+        "command": "python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt",
+        "group": "build"
+      },
+      {
+        "label": "Full pipeline: generate → DQ → features",
+        "type": "shell",
+        "command": "python python/data_generator/data_generator.py --rows 5000 --load && python python/snowpark/dq_framework.py --source ALL && python python/snowpark/feature_engineering.py",
+        "group": "build"
+      }
+    ]
+  }
+}

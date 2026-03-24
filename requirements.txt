@@ -1,0 +1,9 @@
+﻿snowflake-connector-python[pandas]
+snowflake-snowpark-python
+faker
+plotly
+streamlit
+python-dotenv
+pytest
+black
+flake8
