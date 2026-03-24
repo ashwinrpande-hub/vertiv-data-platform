@@ -240,18 +240,15 @@ def save_csv(df: pd.DataFrame, path: Path, name: str) -> Path:
 def load_to_snowflake(df: pd.DataFrame, table: str, conn) -> int:
     """PUT temp CSV to stage then COPY INTO target table."""
     import snowflake.connector
-    tmp = f"/tmp/{table.replace('.','_').replace(' ','_')}.csv"
+    import tempfile; tmp = os.path.join(tempfile.gettempdir(), f"{table.replace('.','_').replace(' ','_')}.csv")
     df.to_csv(tmp, index=False)
     cur = conn.cursor()
     try:
-        cur.execute(f"PUT file://{tmp} @~/vertiv_tmp/ OVERWRITE=TRUE AUTO_COMPRESS=TRUE")
+        cur.execute(f"PUT file://{tmp} @VERTIV_RAW.STAGE.VERTIV_TMP OVERWRITE=TRUE AUTO_COMPRESS=TRUE")
         cur.execute(f"""
             COPY INTO {table}
-            FROM @~/vertiv_tmp/{os.path.basename(tmp)}.gz
-            FILE_FORMAT = (TYPE='CSV' SKIP_HEADER=1
-                           FIELD_OPTIONALLY_ENCLOSED_BY='"'
-                           EMPTY_FIELD_AS_NULL=TRUE
-                           DATE_FORMAT='AUTO' TIMESTAMP_FORMAT='AUTO')
+            FROM @VERTIV_RAW.STAGE.VERTIV_TMP/{os.path.basename(tmp)}.gz
+            FILE_FORMAT = (FORMAT_NAME = 'VERTIV_RAW.STAGE.CSV_FORMAT')
             ON_ERROR='CONTINUE'
         """)
         n = cur.fetchone()[0]
@@ -346,7 +343,7 @@ def main():
             role      = "VERTIV_PLATFORM_ADMIN",
         )
         # Create temp stage
-        conn.cursor().execute("CREATE STAGE IF NOT EXISTS ~/vertiv_tmp")
+        conn.cursor().execute("CREATE STAGE IF NOT EXISTS VERTIV_RAW.STAGE.VERTIV_TMP")
 
         load_map = {
             "VERTIV_RAW.SAP_EUROPE.CUSTOMERS":             out / "sap_customers.csv",
