@@ -30,21 +30,22 @@ log = logging.getLogger("deploy")
 # ── Ordered execution plan ─────────────────────────────────────
 # (role, sql_file)
 PLAN = [
-    ("ACCOUNTADMIN",           "sql/00_setup/01_databases_warehouses.sql"),
-    ("SECURITYADMIN",          "sql/00_setup/02_roles_rbac.sql"),
-    ("VERTIV_PLATFORM_ADMIN",  "sql/01_config/01_config_tables.sql"),
-    ("VERTIV_PLATFORM_ADMIN",  "sql/02_bronze/01_bronze_ddl.sql"),
-    ("VERTIV_PLATFORM_ADMIN",  "sql/03_silver/01_silver_ddl.sql"),
-    ("VERTIV_PLATFORM_ADMIN",  "sql/04_gold/01_gold_bi.sql"),
-    ("VERTIV_PLATFORM_ADMIN",  "sql/04_gold/02_gold_ml_ai.sql"),
-    ("ACCOUNTADMIN",           "sql/05_security/01_security_data_products.sql"),
+    ("ACCOUNTADMIN", "sql/00_setup/01_databases_warehouses.sql"),
+    ("SECURITYADMIN", "sql/00_setup/02_roles_rbac.sql"),
+    ("VERTIV_PLATFORM_ADMIN", "sql/01_config/01_config_tables.sql"),
+    ("VERTIV_PLATFORM_ADMIN", "sql/02_bronze/01_bronze_ddl.sql"),
+    ("VERTIV_PLATFORM_ADMIN", "sql/03_silver/01_silver_ddl.sql"),
+    ("VERTIV_PLATFORM_ADMIN", "sql/04_gold/01_gold_bi.sql"),
+    ("VERTIV_PLATFORM_ADMIN", "sql/04_gold/02_gold_ml_ai.sql"),
+    ("ACCOUNTADMIN", "sql/05_security/01_security_data_products.sql"),
+    ("VERTIV_PLATFORM_ADMIN", "sql/06_data_products/01_data_mesh_products.sql"),
 ]
 
 
 def load_env():
     """Load .env from project root."""
     root = Path(__file__).parent.parent
-    env  = root / ".env"
+    env = root / ".env"
     if env.exists():
         for line in env.read_text().splitlines():
             line = line.strip()
@@ -55,13 +56,14 @@ def load_env():
 
 def get_conn(role: str = "ACCOUNTADMIN"):
     import snowflake.connector
+
     return snowflake.connector.connect(
-        account   = os.environ["SNOWFLAKE_ACCOUNT"],
-        user      = os.environ["SNOWFLAKE_USER"],
-        password  = os.environ["SNOWFLAKE_PASSWORD"],
-        role      = role,
-        warehouse = "INGEST_WH",
-        login_timeout = 30,
+        account=os.environ["SNOWFLAKE_ACCOUNT"],
+        user=os.environ["SNOWFLAKE_USER"],
+        password=os.environ["SNOWFLAKE_PASSWORD"],
+        role=role,
+        warehouse="INGEST_WH",
+        login_timeout=30,
     )
 
 
@@ -81,22 +83,22 @@ def split_sql(text: str) -> list:
 
 
 def run_file(conn, sql_file: str, role: str, dry_run: bool) -> dict:
-    root  = Path(__file__).parent.parent
+    root = Path(__file__).parent.parent
     fpath = root / sql_file
     if not fpath.exists():
         return {"file": sql_file, "ok": False, "reason": "FILE NOT FOUND", "stmts": 0}
 
     content = fpath.read_text(encoding="utf-8")
-    stmts   = split_sql(content)
+    stmts = split_sql(content)
     log.info(f"  {fpath.name}  ({len(stmts)} statements)  role={role}")
 
     if dry_run:
         log.info(f"    [DRY-RUN] would execute {len(stmts)} statements")
         return {"file": sql_file, "ok": True, "reason": "DRY-RUN", "stmts": len(stmts)}
 
-    cur     = conn.cursor()
-    ok_cnt  = err_cnt = 0
-    errors  = []
+    cur = conn.cursor()
+    ok_cnt = err_cnt = 0
+    errors = []
 
     for i, stmt in enumerate(stmts, 1):
         try:
@@ -108,16 +110,21 @@ def run_file(conn, sql_file: str, role: str, dry_run: bool) -> dict:
             ok_cnt += 1
             # Show first row for SHOW / SELECT
             kw = stmt.strip().upper().split()[0] if stmt.strip() else ""
-            if kw in ("SHOW","SELECT","DESCRIBE"):
+            if kw in ("SHOW", "SELECT", "DESCRIBE"):
                 rows = cur.fetchmany(3)
                 if rows:
                     log.debug(f"      → {rows[0]}")
         except Exception as e:
             msg = str(e)
-            IGNORE = ["ALREADY EXISTS","OBJECT ALREADY EXISTS","IF NOT EXISTS",
-                      "DUPLICATE","DOES NOT EXIST"]
+            IGNORE = [
+                "ALREADY EXISTS",
+                "OBJECT ALREADY EXISTS",
+                "IF NOT EXISTS",
+                "DUPLICATE",
+                "DOES NOT EXIST",
+            ]
             if any(x in msg.upper() for x in IGNORE):
-                ok_cnt += 1   # idempotent — treat as ok
+                ok_cnt += 1  # idempotent — treat as ok
             else:
                 err_cnt += 1
                 errors.append(f"  stmt {i}: {msg[:200]}")
@@ -130,7 +137,8 @@ def run_file(conn, sql_file: str, role: str, dry_run: bool) -> dict:
         for e in errors[:3]:
             log.info(e)
     return {
-        "file": sql_file, "ok": err_cnt == 0,
+        "file": sql_file,
+        "ok": err_cnt == 0,
         "reason": "; ".join(errors) if errors else "OK",
         "stmts": len(stmts),
     }
@@ -140,9 +148,11 @@ def deploy(execute: bool, step: str = None, from_step: str = None):
     load_env()
 
     # Validate env vars
-    for var in ["SNOWFLAKE_ACCOUNT","SNOWFLAKE_USER","SNOWFLAKE_PASSWORD"]:
+    for var in ["SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER", "SNOWFLAKE_PASSWORD"]:
         if not os.environ.get(var):
-            log.error(f"Missing: {var}  —  copy .env.template to .env and fill in values")
+            log.error(
+                f"Missing: {var}  —  copy .env.template to .env and fill in values"
+            )
             sys.exit(1)
 
     # Filter plan
@@ -171,15 +181,15 @@ def deploy(execute: bool, step: str = None, from_step: str = None):
         sys.exit(1)
 
     results = []
-    t0      = time.time()
+    t0 = time.time()
     for role, sql_file in plan:
         r = run_file(conn, sql_file, role, dry_run=not execute)
         results.append(r)
     conn.close()
 
     elapsed = time.time() - t0
-    passed  = sum(1 for r in results if r["ok"])
-    failed  = len(results) - passed
+    passed = sum(1 for r in results if r["ok"])
+    failed = len(results) - passed
 
     log.info(f"\n{'='*55}")
     log.info("DEPLOYMENT SUMMARY")
@@ -204,11 +214,14 @@ def deploy(execute: bool, step: str = None, from_step: str = None):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description="Vertiv Snowflake deploy script")
-    p.add_argument("--execute",    action="store_true",
-                   help="Actually run SQL (default: dry-run)")
-    p.add_argument("--step",       default=None,
-                   help="Run only steps starting with this prefix, e.g. 03")
-    p.add_argument("--from-step",  default=None,
-                   help="Run from this step onwards, e.g. 04")
+    p.add_argument(
+        "--execute", action="store_true", help="Actually run SQL (default: dry-run)"
+    )
+    p.add_argument(
+        "--step", default=None, help="Run only steps starting with this prefix, e.g. 03"
+    )
+    p.add_argument(
+        "--from-step", default=None, help="Run from this step onwards, e.g. 04"
+    )
     args = p.parse_args()
     deploy(execute=args.execute, step=args.step, from_step=args.from_step)
