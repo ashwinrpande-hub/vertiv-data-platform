@@ -401,7 +401,7 @@ git add . && git commit -m "message" && git push origin main
 | Snowflake platform (all 9 SQL steps) | LIVE | drdwkxe-gmc96114.snowflakecomputing.com |
 | DQ Streamlit dashboard | LIVE | https://vertiv-data-platform-tech-challange.streamlit.app |
 | Marketplace frontend (local) | WORKING | http://localhost:3000 |
-| Marketplace frontend (Amplify) | NOT DEPLOYED | pending |
+| Marketplace frontend (Amplify) | LIVE | https://main.d1h1tf3nh9quc5.amplifyapp.com |
 | Marketplace backend (Lambda) | NOT DEPLOYED | pending |
 | ACCESS_REQUESTS table (Snowflake) | NOT CREATED | run sql_access_requests.sql |
 
