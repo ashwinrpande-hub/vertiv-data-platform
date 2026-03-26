@@ -108,9 +108,9 @@ INSERT INTO VERTIV_CONFIG.METADATA.DATA_PRODUCT_CATALOG VALUES
  'Breaking changes create v2 view. v1 deprecated with 90-day notice. Schema additions are non-breaking.',
  15, 99.5, 5.0, 99.0, 99.0, 100.0,
  'INTERNAL', 'VERTIV_GLOBAL_ANALYST', FALSE, FALSE,
- ARRAY_CONSTRUCT('sales','revenue','orders','ERP','SAP','JDE','QAD','regional'),
- ARRAY_CONSTRUCT('Sales','Finance'),
- ARRAY_CONSTRUCT('DATA_ANALYST','FINANCE_ANALYST','EXECUTIVE'),
+ PARSE_JSON('[\"sales\",\"revenue\",\"orders\",\"ERP\",\"SAP\",\"JDE\",\"QAD\",\"regional\"]'),
+ PARSE_JSON('[\"Sales\",\"Finance\"]'),
+ PARSE_JSON('[\"DATA_ANALYST\",\"FINANCE_ANALYST\",\"EXECUTIVE\"]'),
  'ACTIVE', NULL, NULL, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
 
 -- PRODUCT 2: Customer 360
@@ -136,9 +136,9 @@ INSERT INTO VERTIV_CONFIG.METADATA.DATA_PRODUCT_CATALOG VALUES
  'Breaking changes create v2. ML model versions tracked separately in MODEL_PREDICTIONS.',
  5, 99.9, 3.0, 99.5, 99.0, 100.0,
  'INTERNAL', 'VERTIV_GLOBAL_ANALYST', FALSE, TRUE,
- ARRAY_CONSTRUCT('customer','360','churn','upsell','ML','CRM','Salesforce','features'),
- ARRAY_CONSTRUCT('Sales','CRM','Data Science'),
- ARRAY_CONSTRUCT('ML_ENGINEER','DATA_ANALYST','SALES_REP'),
+ PARSE_JSON('[\"customer\",\"360\",\"churn\",\"upsell\",\"ML\",\"CRM\",\"Salesforce\",\"features\"]'),
+ PARSE_JSON('[\"Sales\",\"CRM\",\"Data Science\"]'),
+ PARSE_JSON('[\"ML_ENGINEER\",\"DATA_ANALYST\",\"SALES_REP\"]'),
  'ACTIVE', NULL, NULL, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
 
 -- PRODUCT 3: Revenue Analytics
@@ -164,9 +164,9 @@ INSERT INTO VERTIV_CONFIG.METADATA.DATA_PRODUCT_CATALOG VALUES
  'Schema is frozen for Finance systems. Any change requires Finance sign-off and 180-day notice.',
  60, 99.5, 10.0, 99.0, 99.5, 100.0,
  'INTERNAL', 'VERTIV_FINANCE_ANALYST', FALSE, FALSE,
- ARRAY_CONSTRUCT('revenue','finance','FP&A','monthly','product-family','P&L'),
- ARRAY_CONSTRUCT('Finance'),
- ARRAY_CONSTRUCT('FINANCE_ANALYST','EXECUTIVE'),
+ PARSE_JSON('[\"revenue\",\"finance\",\"FP&A\",\"monthly\",\"product-family\",\"P&L\"]'),
+ PARSE_JSON('[\"Finance\"]'),
+ PARSE_JSON('[\"FINANCE_ANALYST\",\"EXECUTIVE\"]'),
  'ACTIVE', NULL, NULL, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
 
 -- PRODUCT 4: Opportunity Signals
@@ -192,9 +192,9 @@ INSERT INTO VERTIV_CONFIG.METADATA.DATA_PRODUCT_CATALOG VALUES
  'Model versions tracked via MODEL_VERSION field. New model = new version, not breaking change.',
  2, 99.9, 2.0, 98.0, 99.0, 100.0,
  'INTERNAL', 'VERTIV_GLOBAL_ANALYST', FALSE, FALSE,
- ARRAY_CONSTRUCT('ML','predictions','churn','upsell','opportunities','real-time','RevOps'),
- ARRAY_CONSTRUCT('Sales','RevOps'),
- ARRAY_CONSTRUCT('ML_ENGINEER','DATA_ANALYST','SALES_REP'),
+ PARSE_JSON('[\"ML\",\"predictions\",\"churn\",\"upsell\",\"opportunities\",\"real-time\",\"RevOps\"]'),
+ PARSE_JSON('[\"Sales\",\"RevOps\"]'),
+ PARSE_JSON('[\"ML_ENGINEER\",\"DATA_ANALYST\",\"SALES_REP\"]'),
  'ACTIVE', NULL, NULL, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 -- ════════════════════════════════════════════════════════════════
