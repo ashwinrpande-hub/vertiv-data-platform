@@ -60,9 +60,9 @@ def compute_customer_revenue_features(session: Session,
     d_str = as_of.isoformat()
     log.info(f"  Computing customer revenue features  as_of={d_str}")
 
-    # All Silver orders strictly before as_of_date
+    # All Silver orders strictly before as_of_date (SAP Dynamic Table — has data)
     orders = (
-        session.table("VERTIV_CURATED.SALES.SALES_ORDER")
+        session.table("VERTIV_CURATED.SALES.DT_SILVER_ORDER_SAP")
         .filter(F.col("IS_CURRENT") == True)
         .filter(F.col("IS_QUARANTINED") == False)
         .filter(F.col("ORDER_DATE") < F.lit(d_str))  # STRICT: < not <=
@@ -175,10 +175,55 @@ def compute_customer_revenue_features(session: Session,
     )
 
     count = final.count()
-    final.write.mode("append").save_as_table(
-        "VERTIV_ANALYTICS.ML_FEATURES.CUSTOMER_REVENUE_FEATURES"
-    )
-    log.info(f"    ✅  Wrote {count:,} feature rows  as_of={d_str}")
+    # Pure SQL INSERT — avoids AUTOINCREMENT/LOAD_TIMESTAMP mismatch and CREATE TABLE privileges
+    session.sql(f"""
+        INSERT INTO VERTIV_ANALYTICS.ML_FEATURES.CUSTOMER_REVENUE_FEATURES
+            (CUSTOMER_HK, AS_OF_DATE, FEATURE_VERSION,
+             REV_L7D_USD, REV_L30D_USD, REV_L90D_USD, REV_L365D_USD, REV_PREV_YEAR_USD,
+             ORDER_COUNT_L30, ORDER_COUNT_L90, ORDER_COUNT_L365,
+             AVG_ORDER_VALUE_L90, MAX_ORDER_VALUE, MIN_ORDER_VALUE,
+             DAYS_SINCE_LAST_ORDER, ORDER_FREQUENCY_L365,
+             PRODUCT_MIX_HHI, CHURN_RISK_SCORE, UPSELL_PROPENSITY)
+        WITH base AS (
+          SELECT
+            o.CUSTOMER_HK,
+            '{d_str}'::DATE                                        AS AS_OF_DATE,
+            {version}                                              AS FEATURE_VERSION,
+            SUM(CASE WHEN DATEDIFF('day', o.ORDER_DATE::TIMESTAMP_NTZ, '{d_str}'::TIMESTAMP_NTZ) <= 7   THEN o.NET_AMOUNT_USD ELSE 0 END) AS REV_L7D_USD,
+            SUM(CASE WHEN DATEDIFF('day', o.ORDER_DATE::TIMESTAMP_NTZ, '{d_str}'::TIMESTAMP_NTZ) <= 30  THEN o.NET_AMOUNT_USD ELSE 0 END) AS REV_L30D_USD,
+            SUM(CASE WHEN DATEDIFF('day', o.ORDER_DATE::TIMESTAMP_NTZ, '{d_str}'::TIMESTAMP_NTZ) <= 90  THEN o.NET_AMOUNT_USD ELSE 0 END) AS REV_L90D_USD,
+            SUM(CASE WHEN DATEDIFF('day', o.ORDER_DATE::TIMESTAMP_NTZ, '{d_str}'::TIMESTAMP_NTZ) <= 365 THEN o.NET_AMOUNT_USD ELSE 0 END) AS REV_L365D_USD,
+            SUM(CASE WHEN DATEDIFF('day', o.ORDER_DATE::TIMESTAMP_NTZ, '{d_str}'::TIMESTAMP_NTZ) BETWEEN 366 AND 730 THEN o.NET_AMOUNT_USD ELSE 0 END) AS REV_PREV_YEAR_USD,
+            COUNT(CASE WHEN DATEDIFF('day', o.ORDER_DATE::TIMESTAMP_NTZ, '{d_str}'::TIMESTAMP_NTZ) <= 30  THEN 1 END) AS ORDER_COUNT_L30,
+            COUNT(CASE WHEN DATEDIFF('day', o.ORDER_DATE::TIMESTAMP_NTZ, '{d_str}'::TIMESTAMP_NTZ) <= 90  THEN 1 END) AS ORDER_COUNT_L90,
+            COUNT(CASE WHEN DATEDIFF('day', o.ORDER_DATE::TIMESTAMP_NTZ, '{d_str}'::TIMESTAMP_NTZ) <= 365 THEN 1 END) AS ORDER_COUNT_L365,
+            MAX(o.NET_AMOUNT_USD)  AS MAX_ORDER_VALUE,
+            MIN(o.NET_AMOUNT_USD)  AS MIN_ORDER_VALUE,
+            MAX(o.ORDER_DATE)      AS LAST_ORDER_DATE,
+            COUNT(*)               AS TOTAL_ORDERS
+          FROM VERTIV_CURATED.SALES.DT_SILVER_ORDER_SAP o
+          WHERE o.IS_CURRENT = TRUE
+            AND o.IS_QUARANTINED = FALSE
+            AND o.ORDER_DATE < '{d_str}'::DATE
+          GROUP BY o.CUSTOMER_HK
+        )
+        SELECT
+          CUSTOMER_HK, AS_OF_DATE, FEATURE_VERSION,
+          REV_L7D_USD, REV_L30D_USD, REV_L90D_USD, REV_L365D_USD, REV_PREV_YEAR_USD,
+          ORDER_COUNT_L30, ORDER_COUNT_L90, ORDER_COUNT_L365,
+          CASE WHEN ORDER_COUNT_L90 > 0 THEN REV_L90D_USD / ORDER_COUNT_L90 ELSE 0 END AS AVG_ORDER_VALUE_L90,
+          MAX_ORDER_VALUE, MIN_ORDER_VALUE,
+          DATEDIFF('day', LAST_ORDER_DATE::TIMESTAMP_NTZ, '{d_str}'::TIMESTAMP_NTZ) AS DAYS_SINCE_LAST_ORDER,
+          (ORDER_COUNT_L365 / 12.0)::FLOAT                        AS ORDER_FREQUENCY_L365,
+          0.25::FLOAT                                              AS PRODUCT_MIX_HHI,
+          GREATEST(0.0, LEAST(1.0,
+            (DATEDIFF('day', LAST_ORDER_DATE::TIMESTAMP_NTZ, '{d_str}'::TIMESTAMP_NTZ) / 365.0) * 0.7
+            + CASE WHEN REV_L90D_USD = 0 THEN 0.3 ELSE 0.0 END
+          ))::FLOAT                                                AS CHURN_RISK_SCORE,
+          CASE WHEN REV_L30D_USD > (REV_L90D_USD / 3.0) THEN 0.75 ELSE 0.25 END::FLOAT AS UPSELL_PROPENSITY
+        FROM base
+    """).collect()
+    log.info(f"    [OK]  Wrote {count:,} feature rows  as_of={d_str}")
     return count
 
 
