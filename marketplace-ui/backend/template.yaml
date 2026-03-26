@@ -21,11 +21,11 @@ Globals:
 
 Parameters:
   SnowflakeAccount:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /vertiv/snowflake/account
+    Type: String
+    Default: drdwkxe-gmc96114
   SnowflakeUser:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /vertiv/snowflake/user
+    Type: String
+    Default: CHANDANPATIL99
   SnowflakePassword:
     Type: String
     NoEcho: true
