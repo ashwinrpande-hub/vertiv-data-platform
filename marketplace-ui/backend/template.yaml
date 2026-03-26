@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: Vertiv Data Marketplace API — Lambda + API Gateway
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Environment:
+      Variables:
+        SNOWFLAKE_ACCOUNT: !Ref SnowflakeAccount
+        SNOWFLAKE_USER: !Ref SnowflakeUser
+        SNOWFLAKE_PASSWORD: !Ref SnowflakePassword
+        SNOWFLAKE_WAREHOUSE: ANALYTICS_WH
+        SNOWFLAKE_DATABASE: VERTIV_PRODUCTS
+        SNOWFLAKE_SCHEMA: SALES_PERFORMANCE
+        SNOWFLAKE_ROLE: VERTIV_GLOBAL_ANALYST
+        ALLOWED_ORIGINS: !Ref AllowedOrigins
+
+Parameters:
+  SnowflakeAccount:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /vertiv/snowflake/account
+  SnowflakeUser:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /vertiv/snowflake/user
+  SnowflakePassword:
+    Type: AWS::SSM::Parameter::Value<SecureString>
+    Default: /vertiv/snowflake/password
+  AllowedOrigins:
+    Type: String
+    Default: "https://main.d1234567890.amplifyapp.com,http://localhost:3000"
+
+Resources:
+  MarketplaceApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+
+  MarketplaceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: vertiv-marketplace-api
+      CodeUri: .
+      Handler: main.handler
+      Description: Vertiv Data Marketplace — FastAPI on Lambda
+      Events:
+        ApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MarketplaceApi
+            Path: /
+            Method: ANY
+        ApiProxy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MarketplaceApi
+            Path: /{proxy+}
+            Method: ANY
+      Tags:
+        Project: vertiv-data-platform
+        Component: marketplace-api
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${MarketplaceApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+    Export:
+      Name: VertivMarketplaceApiUrl
+  FunctionArn:
+    Value: !GetAtt MarketplaceFunction.Arn

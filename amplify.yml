@@ -1,0 +1,26 @@
+version: 1
+
+applications:
+  - frontend:
+      phases:
+        preBuild:
+          commands:
+            - cd marketplace-ui/frontend
+            - npm ci
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: marketplace-ui/frontend/dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - marketplace-ui/frontend/node_modules/**/*
+      buildSpec: amplify.yml
+
+      environment:
+        variables:
+          VITE_USE_MOCK: "false"
+          # VITE_API_URL is set in Amplify Console → Environment Variables
+          # Set to: https://<api-id>.execute-api.<region>.amazonaws.com/prod

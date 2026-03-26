@@ -1,0 +1,103 @@
+name: Deploy Marketplace
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'marketplace-ui/**'
+      - 'amplify.yml'
+      - '.github/workflows/deploy-marketplace.yml'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  # ── Deploy Lambda backend via SAM ─────────────────────────
+  deploy-backend:
+    name: Lambda (SAM)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: marketplace-ui/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Store Snowflake secrets in SSM
+        run: |
+          aws ssm put-parameter \
+            --name /vertiv/snowflake/account \
+            --value "${{ secrets.SNOWFLAKE_ACCOUNT }}" \
+            --type String --overwrite
+          aws ssm put-parameter \
+            --name /vertiv/snowflake/user \
+            --value "${{ secrets.SNOWFLAKE_USER }}" \
+            --type String --overwrite
+          aws ssm put-parameter \
+            --name /vertiv/snowflake/password \
+            --value "${{ secrets.SNOWFLAKE_PASSWORD }}" \
+            --type SecureString --overwrite
+
+      - name: Install SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: SAM build
+        run: sam build
+
+      - name: SAM deploy
+        run: |
+          sam deploy \
+            --stack-name vertiv-marketplace-api \
+            --capabilities CAPABILITY_IAM \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              AllowedOrigins="${{ secrets.AMPLIFY_APP_URL }},http://localhost:3000"
+
+      - name: Output API URL
+        run: |
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name vertiv-marketplace-api \
+            --query 'Stacks[0].Outputs[?OutputKey==`ApiUrl`].OutputValue' \
+            --output text)
+          echo "API_URL=$API_URL" >> $GITHUB_ENV
+          echo "Deployed to: $API_URL"
+
+  # ── Trigger Amplify deploy for frontend ───────────────────
+  deploy-frontend:
+    name: Amplify (React)
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Amplify env var with API URL
+        run: |
+          aws amplify update-app \
+            --app-id ${{ secrets.AMPLIFY_APP_ID }} \
+            --environment-variables \
+              VITE_API_URL=${{ secrets.API_GATEWAY_URL }},VITE_USE_MOCK=false
+
+      - name: Trigger Amplify build
+        run: |
+          aws amplify start-job \
+            --app-id ${{ secrets.AMPLIFY_APP_ID }} \
+            --branch-name main \
+            --job-type RELEASE
+          echo "Amplify build triggered — check AWS Console for status"
