@@ -39,6 +39,7 @@ PLAN = [
     ("VERTIV_PLATFORM_ADMIN", "sql/04_gold/02_gold_ml_ai.sql"),
     ("ACCOUNTADMIN", "sql/05_security/01_security_data_products.sql"),
     ("VERTIV_PLATFORM_ADMIN", "sql/06_data_products/01_data_mesh_products.sql"),
+    ("VERTIV_PLATFORM_ADMIN", "sql/07_automation/01_tasks.sql"),
 ]
 
 
