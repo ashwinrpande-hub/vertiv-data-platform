@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(aws --version)",
+      "Bash(powershell.exe -Command \"sam --version; aws --version\")",
+      "Bash(PYTHONIOENCODING=utf-8 python - <<'EOF':*)"
+    ]
+  }
+}
