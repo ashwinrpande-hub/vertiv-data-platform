@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vertiv VERTIV DataMesh — Data Marketplace</title>
+<style>
+:root{
+  --bg:#060b14;--bg2:#0d1420;--bg3:#111d2e;--card:#0f1928;
+  --card2:#142035;--border:rgba(56,189,248,0.1);--border2:rgba(56,189,248,0.22);
+  --text:#e8f0fe;--muted:#6b85a8;--dim:#3d5470;
+  --blue:#FE5B1B;--blue2:#FB9500;--green:#98FF95;--amber:#FFD248;
+  --red:#f87171;--purple:#5E1EE7;--teal:#7FEDE7;--coral:#FE5B1B;
+  --mono:'Consolas','Courier New',monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100}
+.logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.logo-mark{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#FE5B1B,#5E1EE7);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo-text{font-size:14px;font-weight:700;color:var(--text)}
+.logo-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.nav{padding:16px 10px;flex:1;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--dim);padding:0 10px;margin-bottom:6px;margin-top:16px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;transition:all .15s;text-decoration:none;border:none;background:none;width:100%;font-family:var(--sans)}
+.nav-item:hover{background:rgba(56,189,248,0.06);color:var(--text)}
+.nav-item.active{background:rgba(56,189,248,0.1);color:var(--blue)}
+.nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:10px;background:rgba(56,189,248,0.15);color:var(--blue);padding:1px 7px;border-radius:10px}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.user-chip{display:flex;align-items:center;gap:10px}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#FE5B1B,#5E1EE7);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.user-name{font-size:12px;font-weight:600;color:var(--text)}
+.user-role{font-size:10px;color:var(--muted)}
+
+/* ── MAIN CONTENT ── */
+.main{margin-left:220px;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:15px;font-weight:600;color:var(--text);flex-shrink:0}
+.search-wrap{flex:1;max-width:520px;position:relative}
+.search-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 16px 9px 40px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;transition:border .15s}
+.search-input::placeholder{color:var(--dim)}
+.search-input:focus{border-color:var(--blue2);background:var(--card)}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:14px}
+.ai-badge{display:flex;align-items:center;gap:6px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);border-radius:20px;padding:4px 12px;color:var(--purple);font-size:11px;font-weight:600;flex-shrink:0;cursor:pointer;transition:all .15s}
+.ai-badge:hover{background:rgba(167,139,250,0.18)}
+.topbar-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
+.icon-btn{width:34px;height:34px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;color:var(--muted);transition:all .15s}
+.icon-btn:hover{background:var(--card2);color:var(--text)}
+
+/* ── PAGE CONTENT ── */
+.page{padding:28px 32px;flex:1}
+.page-header{margin-bottom:24px}
+.page-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
+.page-desc{font-size:13px;color:var(--muted)}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.blue::before{background:var(--blue)}
+.kpi.green::before{background:var(--green)}
+.kpi.amber::before{background:var(--amber)}
+.kpi.purple::before{background:var(--purple)}
+.kpi-val{font-size:28px;font-weight:800;color:var(--text);line-height:1}
+.kpi-lbl{font-size:11px;color:var(--muted);margin-top:6px;font-weight:500;text-transform:uppercase;letter-spacing:.6px}
+.kpi-delta{font-size:11px;margin-top:8px;font-weight:600}
+.kpi-delta.up{color:var(--green)}
+.kpi-delta.down{color:var(--red)}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.filter-chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--card);transition:all .15s}
+.filter-chip:hover{border-color:var(--border2);color:var(--text)}
+.filter-chip.active{background:rgba(56,189,248,0.12);border-color:rgba(56,189,248,0.3);color:var(--blue)}
+.filter-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.sort-select{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;padding:6px 12px;font-family:var(--sans);cursor:pointer;outline:none}
+.result-count{margin-left:auto;font-size:12px;color:var(--dim)}
+
+/* ── PRODUCT GRID ── */
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+
+/* ── PRODUCT CARD ── */
+.pcard{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .2s;display:flex;flex-direction:column}
+.pcard:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.pcard-top{padding:18px 20px 14px;flex:1}
+.pcard-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.pcard-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.pcard-meta{flex:1}
+.pcard-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.pcard-domain{font-size:11px;color:var(--muted)}
+.trust-pill{margin-left:auto;text-align:center;flex-shrink:0}
+.trust-num{font-size:18px;font-weight:800;line-height:1}
+.trust-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.trust-dot{font-size:10px;margin-top:2px}
+.trust-dot.green{color:var(--green)}
+.trust-dot.amber{color:var(--amber)}
+.trust-dot.red{color:var(--red)}
+.pcard-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:14px}
+.chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.chip{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.c-blue{background:rgba(56,189,248,0.1);color:var(--blue);border:1px solid rgba(56,189,248,0.18)}
+.c-green{background:rgba(52,211,153,0.1);color:var(--green);border:1px solid rgba(52,211,153,0.18)}
+.c-amber{background:rgba(251,191,36,0.1);color:var(--amber);border:1px solid rgba(251,191,36,0.18)}
+.c-purple{background:rgba(167,139,250,0.1);color:var(--purple);border:1px solid rgba(167,139,250,0.18)}
+.c-coral{background:rgba(251,113,133,0.1);color:var(--coral);border:1px solid rgba(251,113,133,0.18)}
+.dq-mini{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:14px}
+.dq-cell{text-align:center}
+.dq-bar-mini{height:4px;border-radius:2px;margin-bottom:3px}
+.dq-name-mini{font-size:8px;color:var(--dim);text-transform:uppercase}
+.pcard-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.15)}
+.slo-item{text-align:center;flex:1}
+.slo-val{font-size:12px;font-weight:700;color:var(--text)}
+.slo-lbl{font-size:9px;color:var(--dim);text-transform:uppercase}
+.slo-sep{width:1px;height:24px;background:var(--border)}
+.pcard-actions{display:flex;gap:8px;margin-top:auto}
+.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);transition:all .15s}
+.btn-primary{background:#FE5B1B;color:#000}
+.btn-primary:hover{background:#0284c7}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+
+/* ── DETAIL MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:780px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;transform:translateY(20px);transition:transform .2s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:14px}
+.modal-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.modal-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:3px}
+.modal-sub{font-size:12px;color:var(--muted)}
+.modal-close{margin-left:auto;width:30px;height:30px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--muted);flex-shrink:0}
+.modal-body{padding:20px 24px;overflow-y:auto;flex:1}
+.modal-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg3);border-radius:10px;padding:4px}
+.modal-tab{flex:1;padding:7px;border-radius:7px;text-align:center;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .15s}
+.modal-tab.active{background:var(--card2);color:var(--text)}
+.modal-section{margin-bottom:20px}
+.modal-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:10px}
+.schema-table{width:100%;border-collapse:collapse;font-size:12px}
+.schema-table th{background:var(--bg3);color:var(--muted);padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.schema-table td{padding:8px 10px;border-bottom:1px solid rgba(56,189,248,0.05);color:var(--muted);vertical-align:top}
+.schema-table tr:hover td{background:rgba(56,189,248,0.02)}
+.schema-table td code{font-family:var(--mono);font-size:11px;background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--blue)}
+.pii-tag{font-size:9px;background:rgba(251,113,133,0.1);color:var(--coral);border:1px solid rgba(251,113,133,0.2);padding:1px 6px;border-radius:8px;font-weight:600}
+.dq-full-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.dq-full-dim{font-size:12px;color:var(--muted);width:100px;flex-shrink:0}
+.dq-full-bar{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.dq-full-fill{height:100%;border-radius:4px}
+.dq-full-val{font-size:12px;font-weight:600;color:var(--text);width:44px;text-align:right}
+.code-block{background:#060b14;border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:12px;color:#86efac;line-height:2;overflow-x:auto;position:relative}
+.copy-btn{position:absolute;top:8px;right:8px;background:rgba(56,189,248,0.08);border:1px solid var(--border);color:var(--blue);font-size:10px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:var(--sans)}
+.code-comment{color:#3d5470}
+.code-kw{color:#93c5fd}
+.code-str{color:#fcd34d}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px}
+.btn-lg{padding:10px 24px;font-size:13px}
+
+/* ── AI SEARCH PANEL ── */
+.ai-panel{background:var(--card);border:1px solid rgba(167,139,250,0.25);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:none}
+.ai-panel.show{display:block}
+.ai-panel-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ai-panel-title{font-size:13px;font-weight:600;color:var(--purple)}
+.ai-results{display:flex;flex-direction:column;gap:8px}
+.ai-result{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;transition:all .15s}
+.ai-result:hover{border-color:rgba(167,139,250,0.3)}
+.ai-result-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.ai-result-why{font-size:11px;color:var(--muted)}
+.ai-result-score{font-size:10px;color:var(--purple);font-weight:700;margin-left:auto}
+
+/* ── MISC ── */
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:15px;font-weight:700;color:var(--text)}
+.view-all{font-size:12px;color:var(--blue);cursor:pointer}
+.empty{text-align:center;padding:60px 20px;color:var(--dim)}
+.pulse{animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px}
+.green-dot{background:var(--green)}
+.amber-dot{background:var(--amber)}
+.red-dot{background:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="logo-text">VERTIV DataMesh</div>
+        <div class="logo-sub">Vertiv Data Marketplace</div>
+      </div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Discover</div>
+    <button class="nav-item active" onclick="switchPage('catalog')">
+      <span class="nav-icon">🗂</span> Data Catalog
+      <span class="nav-badge">4</span>
+    </button>
+    <button class="nav-item" onclick="switchPage('search')">
+      <span class="nav-icon">🔍</span> AI Search
+    </button>
+    <button class="nav-item" onclick="switchPage('domains')">
+      <span class="nav-icon">🏢</span> Domains
+    </button>
+
+    <div class="nav-section">My Workspace</div>
+    <button class="nav-item" onclick="switchPage('subscriptions')">
+      <span class="nav-icon">📌</span> Subscriptions
+      <span class="nav-badge">2</span>
+    </button>
+    <button class="nav-item" onclick="switchPage('requests')">
+      <span class="nav-icon">📋</span> Access Requests
+    </button>
+    <button class="nav-item" onclick="switchPage('lineage')">
+      <span class="nav-icon">🔗</span> Data Lineage
+    </button>
+
+    <div class="nav-section">Govern</div>
+    <button class="nav-item" onclick="switchPage('quality')">
+      <span class="nav-icon">🛡</span> DQ Monitor
+    </button>
+    <button class="nav-item" onclick="switchPage('governance')">
+      <span class="nav-icon">⚖️</span> Governance
+    </button>
+    <button class="nav-item" onclick="switchPage('publish')">
+      <span class="nav-icon">📦</span> Publish Product
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-avatar">CP</div>
+      <div>
+        <div class="user-name">Ashwin Pande</div>
+        <div class="user-role">Principal Data Architect</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<main class="main">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <span class="topbar-title" id="page-title">Data Catalog</span>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="search-input" placeholder="Search data products, schemas, domains..." oninput="handleSearch(this.value)" onkeydown="if(event.key==='Enter')aiSearch(this.value)">
+    </div>
+    <div class="ai-badge" onclick="aiSearch(document.getElementById('search-input').value)">
+      ✨ AI Search
+    </div>
+    <div class="topbar-actions">
+      <div class="icon-btn" title="Notifications">🔔</div>
+      <div class="icon-btn" title="Settings">⚙️</div>
+      <div class="icon-btn" title="Documentation">📖</div>
+    </div>
+  </div>
+
+  <!-- Page Content -->
+  <div class="page">
+
+    <!-- AI Search Results -->
+    <div class="ai-panel" id="ai-panel">
+      <div class="ai-panel-header">
+        <span>✨</span>
+        <span class="ai-panel-title">AI-Powered Results</span>
+        <span style="font-size:11px;color:var(--dim);margin-left:auto">Semantic search via Snowflake Cortex e5-base-v2</span>
+        <span style="font-size:16px;cursor:pointer;color:var(--dim);margin-left:10px" onclick="closeAI()">✕</span>
+      </div>
+      <div class="ai-results" id="ai-results"></div>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-row">
+      <div class="kpi blue">
+        <div class="kpi-val">4</div>
+        <div class="kpi-lbl">Data Products</div>
+        <div class="kpi-delta up">↑ 2 domains covered</div>
+      </div>
+      <div class="kpi green">
+        <div class="kpi-val">98.9%</div>
+        <div class="kpi-lbl">Avg Trust Score</div>
+        <div class="kpi-delta up">↑ All GREEN</div>
+      </div>
+      <div class="kpi amber">
+        <div class="kpi-val">19.5K</div>
+        <div class="kpi-lbl">Records Served</div>
+        <div class="kpi-delta up">↑ 3 source systems</div>
+      </div>
+      <div class="kpi purple">
+        <div class="kpi-val">2</div>
+        <div class="kpi-lbl">Active Shares</div>
+        <div class="kpi-delta up">Marketplace ready</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <button class="filter-chip active" onclick="filterProducts('all',this)">All Products</button>
+      <button class="filter-chip" onclick="filterProducts('Sales',this)">Sales</button>
+      <button class="filter-chip" onclick="filterProducts('Finance',this)">Finance</button>
+      <button class="filter-chip" onclick="filterProducts('Revenue Operations',this)">RevOps</button>
+      <div class="filter-sep"></div>
+      <button class="filter-chip" onclick="filterProducts('MUST',this)">MUST Reqs</button>
+      <button class="filter-chip" onclick="filterProducts('GREEN',this)">🟢 GREEN</button>
+      <div class="filter-sep"></div>
+      <select class="sort-select" onchange="sortProducts(this.value)">
+        <option value="trust">Sort: Trust Score</option>
+        <option value="name">Sort: Name</option>
+        <option value="domain">Sort: Domain</option>
+        <option value="freshness">Sort: Freshness</option>
+      </select>
+      <span class="result-count" id="result-count">4 products</span>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="product-grid" id="product-grid"></div>
+
+  </div>
+</main>
+
+<!-- ── DETAIL MODAL ── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-icon" id="modal-icon"></div>
+      <div>
+        <div class="modal-title" id="modal-title"></div>
+        <div class="modal-sub" id="modal-sub"></div>
+      </div>
+      <div class="modal-close" onclick="closeModal(true)">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tabs">
+        <div class="modal-tab active" onclick="switchTab('overview',this)">Overview</div>
+        <div class="modal-tab" onclick="switchTab('schema',this)">Schema</div>
+        <div class="modal-tab" onclick="switchTab('quality',this)">DQ Trust</div>
+        <div class="modal-tab" onclick="switchTab('access',this)">Access</div>
+        <div class="modal-tab" onclick="switchTab('lineage',this)">Lineage</div>
+      </div>
+      <div id="modal-content"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-lg" onclick="requestAccess()">Request Access</button>
+      <button class="btn btn-ghost btn-lg" onclick="copySnowflakeQuery()">Copy SQL</button>
+      <button class="btn btn-ghost btn-lg" onclick="closeModal(true)">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+const PRODUCTS = [
+  {
+    id: 'DP-001', name: 'Sales Performance', version: 'v1',
+    domain: 'Sales', owner: 'Sales Operations Team', steward: 'Ashwin Pande',
+    icon: '📊', iconBg: 'rgba(56,189,248,0.15)',
+    trustScore: 98.9, trustBand: 'GREEN',
+    desc: 'Unified sales order performance across SAP (Europe), JDE (Americas), and QAD (EMEA). Single source of truth for revenue reporting across all ERP systems.',
+    useCases: ['Revenue dashboards','Regional comparisons','Sales quota tracking','Executive QBR decks','Finance FP&A'],
+    personas: ['DATA_ANALYST','FINANCE_ANALYST','EXECUTIVE'],
+    tags: ['sales','revenue','orders','ERP','SAP','JDE','QAD','regional'],
+    slo: { freshness: '15 min', availability: '99.5%', latency: '5s p95' },
+    dq: { completeness: 99.9, accuracy: 98.8, consistency: 100, timeliness: 94.8, uniqueness: 100, validity: 100 },
+    address: 'VERTIV_PRODUCTS.SALES_PERFORMANCE.SALES_ORDERS_V1',
+    share: 'VERTIV_SALES_PERFORMANCE_SHARE',
+    inputSources: ['SAP_EUROPE.SALES_ORDERS','JDE_AMERICAS.SALES_ORDERS','QAD_EMEA.SALES_ORDERS'],
+    piiPresent: false, gdprApplicable: false, status: 'ACTIVE',
+    dataAgeMin: 8, recordCount: 15000,
+    schema: [
+      { col: 'ORDER_HK', type: 'VARCHAR(64)', nullable: false, pii: false, desc: 'SHA256 hash key — unique across all ERP systems', example: 'a3f4b2c1...' },
+      { col: 'CUSTOMER_HK', type: 'VARCHAR(64)', nullable: false, pii: false, desc: 'SHA256 hash key — links to Customer 360', example: 'd9e8f7...' },
+      { col: 'ORDER_DATE', type: 'DATE', nullable: false, pii: false, desc: 'Order date in source ERP', example: '2024-03-15' },
+      { col: 'ORDER_TYPE', type: 'VARCHAR(30)', nullable: true, pii: false, desc: 'STANDARD | RUSH | CONTRACT | SERVICE', example: 'STANDARD' },
+      { col: 'NET_AMOUNT_USD', type: 'NUMBER(18,4)', nullable: false, pii: false, desc: 'Net value normalized to USD via FX table', example: '45231.5000' },
+      { col: 'TOTAL_AMOUNT_USD', type: 'NUMBER(18,4)', nullable: false, pii: false, desc: 'Total including tax (USD)', example: '48850.0800' },
+      { col: 'SOURCE_SYSTEM', type: 'VARCHAR(20)', nullable: false, pii: false, desc: 'SAP | JDE | QAD', example: 'SAP' },
+      { col: 'SOURCE_REGION', type: 'VARCHAR(20)', nullable: false, pii: false, desc: 'EUROPE | AMERICAS | EMEA', example: 'EUROPE' },
+      { col: 'REGION_NAME', type: 'VARCHAR(100)', nullable: true, pii: false, desc: 'Human-readable region', example: 'Europe' },
+      { col: 'COUNTRY_CODE', type: 'VARCHAR(3)', nullable: true, pii: false, desc: 'ISO 3166-1 alpha-3', example: 'DEU' },
+      { col: 'YEAR_NUMBER', type: 'NUMBER', nullable: false, pii: false, desc: 'Calendar year', example: '2024' },
+      { col: 'QUARTER_NAME', type: 'VARCHAR(6)', nullable: false, pii: false, desc: 'Q1 | Q2 | Q3 | Q4', example: 'Q1' },
+    ],
+    sqlExample: `USE ROLE VERTIV_GLOBAL_ANALYST;\n\n-- Revenue by region and quarter\nSELECT\n  REGION_NAME,\n  YEAR_NUMBER,\n  QUARTER_NAME,\n  SUM(NET_AMOUNT_USD) AS REVENUE_USD,\n  COUNT(DISTINCT ORDER_HK) AS ORDER_COUNT\nFROM VERTIV_PRODUCTS.SALES_PERFORMANCE.SALES_ORDERS_V1\nWHERE YEAR_NUMBER = 2024\nGROUP BY 1,2,3\nORDER BY REVENUE_USD DESC;`
+  },
+  {
+    id: 'DP-002', name: 'Customer 360', version: 'v1',
+    domain: 'Sales', owner: 'CRM & Customer Intelligence', steward: 'Ashwin Pande',
+    icon: '👤', iconBg: 'rgba(52,211,153,0.15)',
+    trustScore: 98.7, trustBand: 'GREEN',
+    desc: 'Unified customer master combining SAP, JDE, QAD, and Salesforce. Includes ML-scored churn risk, upsell propensity, revenue history, and behavioral signals.',
+    useCases: ['Customer segmentation','Churn prediction','Upsell identification','Account planning','Sales prioritization'],
+    personas: ['ML_ENGINEER','DATA_ANALYST','SALES_REP'],
+    tags: ['customer','360','churn','upsell','ML','CRM','features'],
+    slo: { freshness: '5 min', availability: '99.9%', latency: '3s p95' },
+    dq: { completeness: 99.8, accuracy: 99.1, consistency: 99.0, timeliness: 95.0, uniqueness: 100, validity: 99.5 },
+    address: 'VERTIV_PRODUCTS.CUSTOMER_360.CUSTOMERS_V1',
+    share: 'VERTIV_CUSTOMER_360_SHARE',
+    inputSources: ['CURATED.SALES.CUSTOMER','ML_FEATURES.CUSTOMER_REVENUE_FEATURES','ML_FEATURES.MODEL_PREDICTIONS'],
+    piiPresent: true, gdprApplicable: true, status: 'ACTIVE',
+    dataAgeMin: 3, recordCount: 1500,
+    schema: [
+      { col: 'CUSTOMER_HK', type: 'VARCHAR(64)', nullable: false, pii: false, desc: 'Master customer hash key — interoperable with all products', example: 'a3f4...' },
+      { col: 'CUSTOMER_NAME', type: 'VARCHAR(500)', nullable: false, pii: true, desc: 'Legal entity name (MASKED for non-admin)', example: '*** MASKED ***' },
+      { col: 'INDUSTRY', type: 'VARCHAR(100)', nullable: true, pii: false, desc: 'Industry vertical', example: 'DATA_CENTER' },
+      { col: 'REGION', type: 'VARCHAR(50)', nullable: true, pii: false, desc: 'Geographic region', example: 'EUROPE' },
+      { col: 'SEGMENT', type: 'VARCHAR(50)', nullable: true, pii: false, desc: 'ENTERPRISE | MID_MARKET | SMB', example: 'ENTERPRISE' },
+      { col: 'REV_L30D_USD', type: 'NUMBER(18,2)', nullable: true, pii: false, desc: 'Revenue last 30 days (USD) — PIT correct', example: '125000.00' },
+      { col: 'REV_L90D_USD', type: 'NUMBER(18,2)', nullable: true, pii: false, desc: 'Revenue last 90 days (USD)', example: '380000.00' },
+      { col: 'REV_L365D_USD', type: 'NUMBER(18,2)', nullable: true, pii: false, desc: 'Revenue last 365 days (USD)', example: '1250000.00' },
+      { col: 'CHURN_RISK_SCORE', type: 'NUMBER(5,4)', nullable: true, pii: false, desc: '0-1 churn probability (next 90 days)', example: '0.1823' },
+      { col: 'UPSELL_PROPENSITY', type: 'NUMBER(5,4)', nullable: true, pii: false, desc: '0-1 upsell likelihood', example: '0.7250' },
+      { col: 'DAYS_SINCE_LAST_ORDER', type: 'NUMBER', nullable: true, pii: false, desc: 'Recency signal for churn model', example: '12' },
+      { col: 'AS_OF_DATE', type: 'DATE', nullable: false, pii: false, desc: 'Point-in-time snapshot — strict PIT correct', example: '2024-03-25' },
+    ],
+    sqlExample: `USE ROLE VERTIV_GLOBAL_ANALYST;\n\n-- High churn risk customers with recent revenue\nSELECT\n  CUSTOMER_HK, SEGMENT, REGION,\n  REV_L90D_USD,\n  CHURN_RISK_SCORE,\n  UPSELL_PROPENSITY,\n  DAYS_SINCE_LAST_ORDER\nFROM VERTIV_PRODUCTS.CUSTOMER_360.FEATURES_V1\nWHERE CHURN_RISK_SCORE > 0.7\n  AND REV_L90D_USD > 100000\nORDER BY CHURN_RISK_SCORE DESC\nLIMIT 50;`
+  },
+  {
+    id: 'DP-003', name: 'Revenue Analytics', version: 'v1',
+    domain: 'Finance', owner: 'Finance & FP&A Team', steward: 'Ashwin Pande',
+    icon: '💰', iconBg: 'rgba(251,191,36,0.15)',
+    trustScore: 99.6, trustBand: 'GREEN',
+    desc: 'Monthly and quarterly revenue by product family, region, and ERP system. Designed for Finance FP&A, executive reporting, and board-level dashboards.',
+    useCases: ['Monthly close reporting','Budget vs actual','Product line P&L','Board decks','Revenue forecasting'],
+    personas: ['FINANCE_ANALYST','EXECUTIVE'],
+    tags: ['revenue','finance','FP&A','monthly','P&L','product-family'],
+    slo: { freshness: '60 min', availability: '99.5%', latency: '10s p95' },
+    dq: { completeness: 100, accuracy: 99.5, consistency: 100, timeliness: 98.0, uniqueness: 100, validity: 100 },
+    address: 'VERTIV_PRODUCTS.REVENUE_ANALYTICS.MONTHLY_REVENUE_V1',
+    share: null,
+    inputSources: ['ANALYTICS.BI.FACT_SALES_ORDERS','ANALYTICS.BI.DIM_DATE','ANALYTICS.BI.DIM_PRODUCT'],
+    piiPresent: false, gdprApplicable: false, status: 'ACTIVE',
+    dataAgeMin: 45, recordCount: 3600,
+    schema: [
+      { col: 'PRODUCT_FAMILY', type: 'VARCHAR(100)', nullable: false, pii: false, desc: 'UPS | COOLING | PDU | RACK | MONITORING | SERVICES', example: 'UPS' },
+      { col: 'PRODUCT_LINE', type: 'VARCHAR(100)', nullable: true, pii: false, desc: 'Specific product line within family', example: 'Liebert GXT5' },
+      { col: 'YEAR_NUMBER', type: 'NUMBER', nullable: false, pii: false, desc: 'Calendar year', example: '2024' },
+      { col: 'QUARTER_NUMBER', type: 'NUMBER', nullable: false, pii: false, desc: '1-4', example: '1' },
+      { col: 'MONTH_NUMBER', type: 'NUMBER', nullable: false, pii: false, desc: '1-12', example: '3' },
+      { col: 'SOURCE_SYSTEM', type: 'VARCHAR(20)', nullable: false, pii: false, desc: 'SAP | JDE | QAD', example: 'SAP' },
+      { col: 'TOTAL_REVENUE_USD', type: 'NUMBER(18,2)', nullable: false, pii: false, desc: 'Total net revenue (USD)', example: '2450000.00' },
+      { col: 'ORDER_COUNT', type: 'NUMBER', nullable: false, pii: false, desc: 'Distinct order count', example: '234' },
+      { col: 'UNIQUE_CUSTOMERS', type: 'NUMBER', nullable: false, pii: false, desc: 'Distinct customer count', example: '89' },
+      { col: 'AVG_DISCOUNT_PCT', type: 'NUMBER(5,2)', nullable: true, pii: false, desc: 'Average discount applied', example: '8.50' },
+    ],
+    sqlExample: `USE ROLE VERTIV_FINANCE_ANALYST;\n\n-- YTD Revenue by Product Family\nSELECT\n  PRODUCT_FAMILY,\n  SUM(TOTAL_REVENUE_USD) AS YTD_REVENUE,\n  SUM(ORDER_COUNT) AS ORDERS,\n  SUM(UNIQUE_CUSTOMERS) AS CUSTOMERS\nFROM VERTIV_PRODUCTS.REVENUE_ANALYTICS.MONTHLY_REVENUE_V1\nWHERE YEAR_NUMBER = 2024\nGROUP BY 1\nORDER BY YTD_REVENUE DESC;`
+  },
+  {
+    id: 'DP-004', name: 'Opportunity Signals', version: 'v1',
+    domain: 'Revenue Operations', owner: 'RevOps & Sales Intelligence', steward: 'Ashwin Pande',
+    icon: '🎯', iconBg: 'rgba(167,139,250,0.15)',
+    trustScore: 98.7, trustBand: 'GREEN',
+    desc: 'Real-time ML prediction scores for opportunities: churn risk alerts, upsell propensity, and deal health signals. Refreshed every 2 minutes from ML pipeline.',
+    useCases: ['Sales rep prioritization','Pipeline health','At-risk account alerts','Upsell target lists','RevOps reviews'],
+    personas: ['ML_ENGINEER','DATA_ANALYST','SALES_REP'],
+    tags: ['ML','predictions','churn','upsell','opportunities','real-time','RevOps'],
+    slo: { freshness: '2 min', availability: '99.9%', latency: '2s p95' },
+    dq: { completeness: 98.5, accuracy: 97.2, consistency: 98.5, timeliness: 99.0, uniqueness: 100, validity: 99.0 },
+    address: 'VERTIV_PRODUCTS.OPPORTUNITY_SIGNALS.PREDICTIONS_V1',
+    share: null,
+    inputSources: ['ML_FEATURES.MODEL_PREDICTIONS','CURATED.SALES.OPPORTUNITY'],
+    piiPresent: false, gdprApplicable: false, status: 'ACTIVE',
+    dataAgeMin: 1, recordCount: 2500,
+    schema: [
+      { col: 'ENTITY_HK', type: 'VARCHAR(64)', nullable: false, pii: false, desc: 'Customer hash key — links to Customer 360', example: 'a3f4...' },
+      { col: 'AS_OF_DATE', type: 'DATE', nullable: false, pii: false, desc: 'Prediction snapshot date', example: '2024-03-25' },
+      { col: 'MODEL_NAME', type: 'VARCHAR(200)', nullable: false, pii: false, desc: 'CHURN_RISK | UPSELL_PROPENSITY', example: 'CHURN_RISK' },
+      { col: 'MODEL_VERSION', type: 'VARCHAR(50)', nullable: false, pii: false, desc: 'Semantic version of model', example: 'v1.0' },
+      { col: 'PREDICTION_SCORE', type: 'NUMBER(8,6)', nullable: false, pii: false, desc: '0-1 probability score', example: '0.823456' },
+      { col: 'PREDICTION_BAND', type: 'VARCHAR(20)', nullable: false, pii: false, desc: 'HIGH | MEDIUM | LOW classification', example: 'HIGH' },
+      { col: 'CONFIDENCE_INTERVAL', type: 'NUMBER(5,4)', nullable: true, pii: false, desc: '95% CI width around prediction', example: '0.0500' },
+    ],
+    sqlExample: `USE ROLE VERTIV_GLOBAL_ANALYST;\n\n-- High-risk accounts for intervention\nSELECT\n  p.ENTITY_HK,\n  p.PREDICTION_SCORE AS CHURN_SCORE,\n  p.PREDICTION_BAND,\n  c.REV_L90D_USD,\n  c.SEGMENT\nFROM VERTIV_PRODUCTS.OPPORTUNITY_SIGNALS.PREDICTIONS_V1 p\nJOIN VERTIV_PRODUCTS.CUSTOMER_360.FEATURES_V1 c\n  ON p.ENTITY_HK = c.CUSTOMER_HK -- same SHA256 key!\nWHERE p.MODEL_NAME = 'CHURN_RISK'\n  AND p.PREDICTION_BAND = 'HIGH'\n  AND c.REV_L90D_USD > 50000\nORDER BY p.PREDICTION_SCORE DESC;`
+  },
+];
+
+// AI semantic search results
+const AI_INDEX = {
+  'churn': ['DP-002','DP-004'],
+  'customer': ['DP-002','DP-001'],
+  'revenue': ['DP-003','DP-001'],
+  'ml': ['DP-002','DP-004'],
+  'finance': ['DP-003'],
+  'sales': ['DP-001','DP-002'],
+  'prediction': ['DP-004','DP-002'],
+  'upsell': ['DP-002','DP-004'],
+  'region': ['DP-001','DP-003'],
+  'risk': ['DP-004','DP-002'],
+  'opportunity': ['DP-004'],
+  'product': ['DP-003','DP-001'],
+  'erp': ['DP-001'],
+  'sap': ['DP-001'],
+  'forecast': ['DP-003'],
+  'score': ['DP-004','DP-002'],
+};
+
+const AI_REASONS = {
+  'DP-001': 'High semantic match — contains sales orders, revenue metrics, ERP data',
+  'DP-002': 'Strong match — unified customer intelligence with ML-scored risk signals',
+  'DP-003': 'Good match — monthly revenue aggregations by product family and region',
+  'DP-004': 'Relevant — real-time ML prediction scores for opportunities and churn',
+};
+
+let currentFilter = 'all';
+let currentProduct = null;
+let currentTab = 'overview';
+
+// ── RENDER PRODUCT GRID ───────────────────────────────────────
+function renderGrid(products) {
+  const grid = document.getElementById('product-grid');
+  document.getElementById('result-count').textContent = `${products.length} product${products.length!==1?'s':''}`;
+  if (!products.length) {
+    grid.innerHTML = '<div class="empty">No products match your filter</div>';
+    return;
+  }
+  grid.innerHTML = products.map(p => {
+    const dqVals = Object.values(p.dq);
+    const dqDims = ['Completeness','Accuracy','Consistency','Timeliness','Uniqueness','Validity'];
+    const dqMini = dqDims.map((d,i) => {
+      const v = dqVals[i];
+      const col = v >= 99 ? '#34d399' : v >= 95 ? '#fbbf24' : '#f87171';
+      return `<div class="dq-cell">
+        <div class="dq-bar-mini" style="background:${col};opacity:${0.3+v/100*0.7}"></div>
+        <div class="dq-name-mini">${d[0]}</div>
+      </div>`;
+    }).join('');
+    const trustColor = p.trustBand==='GREEN'?'#34d399':p.trustBand==='AMBER'?'#fbbf24':'#f87171';
+    const tags = p.tags.slice(0,4).map(t => `<span class="chip c-blue">${t}</span>`).join('');
+    const personas = p.personas.map(per => `<span class="chip c-green">${per}</span>`).join('');
+    return `<div class="pcard" onclick="openProduct('${p.id}')">
+      <div class="pcard-top">
+        <div class="pcard-header">
+          <div class="pcard-icon" style="background:${p.iconBg}">${p.icon}</div>
+          <div class="pcard-meta">
+            <div class="pcard-name">${p.name} <span style="font-size:10px;color:var(--dim);font-weight:400">${p.version}</span></div>
+            <div class="pcard-domain">${p.domain} · ${p.owner}</div>
+          </div>
+          <div class="trust-pill">
+            <div class="trust-num" style="color:${trustColor}">${p.trustScore}</div>
+            <div class="trust-label">Trust</div>
+            <div class="trust-dot ${p.trustBand.toLowerCase()}">● ${p.trustBand}</div>
+          </div>
+        </div>
+        <div class="pcard-desc">${p.desc}</div>
+        <div class="chip-row">${tags}</div>
+        <div class="dq-mini">${dqMini}</div>
+        <div class="chip-row">${personas}</div>
+      </div>
+      <div class="pcard-footer">
+        <div class="slo-item">
+          <div class="slo-val">${p.slo.freshness}</div>
+          <div class="slo-lbl">Freshness</div>
+        </div>
+        <div class="slo-sep"></div>
+        <div class="slo-item">
+          <div class="slo-val">${p.slo.availability}</div>
+          <div class="slo-lbl">Avail.</div>
+        </div>
+        <div class="slo-sep"></div>
+        <div class="slo-item">
+          <div class="slo-val">${p.dataAgeMin}m</div>
+          <div class="slo-lbl">Current age</div>
+        </div>
+        <div class="slo-sep"></div>
+        <div class="slo-item">
+          <div class="slo-val" style="color:${p.share?'var(--green)':'var(--muted)'}">${p.share?'Shared':'Internal'}</div>
+          <div class="slo-lbl">Marketplace</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── FILTER ────────────────────────────────────────────────────
+function filterProducts(filter, btn) {
+  document.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = filter;
+  applyFilter();
+}
+
+function applyFilter() {
+  let results = PRODUCTS;
+  const q = document.getElementById('search-input').value.toLowerCase();
+  if (q) results = results.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    p.desc.toLowerCase().includes(q) ||
+    p.domain.toLowerCase().includes(q) ||
+    p.tags.some(t => t.includes(q))
+  );
+  if (currentFilter === 'GREEN') results = results.filter(p => p.trustBand === 'GREEN');
+  else if (currentFilter !== 'all' && currentFilter !== 'MUST') results = results.filter(p => p.domain === currentFilter);
+  renderGrid(results);
+}
+
+function handleSearch(v) { applyFilter(); }
+
+function sortProducts(by) {
+  if (by === 'trust') PRODUCTS.sort((a,b) => b.trustScore - a.trustScore);
+  else if (by === 'name') PRODUCTS.sort((a,b) => a.name.localeCompare(b.name));
+  else if (by === 'domain') PRODUCTS.sort((a,b) => a.domain.localeCompare(b.domain));
+  else if (by === 'freshness') PRODUCTS.sort((a,b) => a.dataAgeMin - b.dataAgeMin);
+  applyFilter();
+}
+
+// ── AI SEARCH ─────────────────────────────────────────────────
+function aiSearch(query) {
+  if (!query.trim()) return;
+  const panel = document.getElementById('ai-panel');
+  panel.classList.add('show');
+  const words = query.toLowerCase().split(/\s+/);
+  const scores = {};
+  words.forEach(w => {
+    Object.entries(AI_INDEX).forEach(([k, ids]) => {
+      if (k.includes(w) || w.includes(k)) {
+        ids.forEach(id => { scores[id] = (scores[id] || 0) + 1; });
+      }
+    });
+  });
+  const ranked = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,3);
+  if (!ranked.length) {
+    // fallback: show all
+    ['DP-001','DP-002'].forEach(id => { scores[id] = 1; ranked.push([id,1]); });
+  }
+  const container = document.getElementById('ai-results');
+  container.innerHTML = ranked.map(([id, sc]) => {
+    const p = PRODUCTS.find(x => x.id === id);
+    const similarity = Math.min(0.95, 0.60 + sc * 0.12 + Math.random() * 0.08);
+    return `<div class="ai-result" onclick="openProduct('${id}')">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span>${p.icon}</span>
+        <div class="ai-result-name">${p.name}</div>
+        <div class="ai-result-score" style="margin-left:auto">Similarity: ${(similarity*100).toFixed(1)}%</div>
+      </div>
+      <div class="ai-result-why">${AI_REASONS[id]}</div>
+    </div>`;
+  }).join('');
+}
+
+function closeAI() {
+  document.getElementById('ai-panel').classList.remove('show');
+}
+
+// ── MODAL ─────────────────────────────────────────────────────
+function openProduct(id) {
+  currentProduct = PRODUCTS.find(p => p.id === id);
+  currentTab = 'overview';
+  const p = currentProduct;
+  document.getElementById('modal-icon').textContent = p.icon;
+  document.getElementById('modal-icon').style.background = p.iconBg;
+  document.getElementById('modal-title').textContent = `${p.name} ${p.version}`;
+  document.getElementById('modal-sub').textContent = `${p.domain} · ${p.owner} · Trust: ${p.trustScore}/100 ${p.trustBand}`;
+  document.querySelectorAll('.modal-tab').forEach((t,i) => t.classList.toggle('active', i===0));
+  renderTab('overview');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(force) {
+  if (force === true || force?.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+}
+
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderTab(tab);
+}
+
+function renderTab(tab) {
+  const p = currentProduct;
+  const container = document.getElementById('modal-content');
+
+  if (tab === 'overview') {
+    container.innerHTML = `
+      <div class="modal-section">
+        <div class="modal-section-title">Description</div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.7">${p.desc}</p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Use Cases</div>
+        <div class="chip-row">${p.useCases.map(u=>`<span class="chip c-blue">${u}</span>`).join('')}</div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Consumer Personas</div>
+        <div class="chip-row">${p.personas.map(pr=>`<span class="chip c-green">${pr}</span>`).join('')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="modal-section">
+          <div class="modal-section-title">Service Level Objectives</div>
+          ${Object.entries(p.slo).map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--muted)">${k}</span><span style="font-size:12px;font-weight:600;color:var(--green)">${v}</span></div>`).join('')}
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-title">Input Sources</div>
+          ${p.inputSources.map(s=>`<div style="font-size:11px;font-family:var(--mono);color:var(--blue);padding:4px 0;border-bottom:1px solid var(--border)">${s}</div>`).join('')}
+        </div>
+      </div>
+      <div class="modal-section" style="margin-top:14px">
+        <div class="modal-section-title">Permanent Address</div>
+        <div style="font-size:12px;font-family:var(--mono);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--blue)">${p.address}</div>
+        ${p.share?`<div style="font-size:11px;color:var(--muted);margin-top:6px">Marketplace Share: <span style="color:var(--green)">${p.share}</span></div>`:'<div style="font-size:11px;color:var(--muted);margin-top:6px">Internal access only — contact data-platform@vertiv.com</div>'}
+      </div>`;
+  }
+
+  else if (tab === 'schema') {
+    container.innerHTML = `
+      <div class="modal-section">
+        <div class="modal-section-title">Output Contract — ${p.version} (Stable)</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Breaking changes require ${p.id==='DP-003'?'180':'90'}-day notice and v2 release. Non-breaking additions allowed without notice.</p>
+        <table class="schema-table">
+          <thead><tr><th>Column</th><th>Type</th><th>Nullable</th><th>Description</th><th>Example</th></tr></thead>
+          <tbody>
+            ${p.schema.map(s=>`<tr>
+              <td><code>${s.col}</code>${s.pii?` <span class="pii-tag">PII</span>`:''}</td>
+              <td><code>${s.type}</code></td>
+              <td style="color:${s.nullable?'var(--muted)':'var(--red)'}">${s.nullable?'YES':'NO'}</td>
+              <td>${s.desc}</td>
+              <td><code style="font-size:10px;color:var(--dim)">${s.example}</code></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  else if (tab === 'quality') {
+    const dims = ['Completeness','Accuracy','Consistency','Timeliness','Uniqueness','Validity'];
+    const dqVals = Object.values(p.dq);
+    const avg = dqVals.reduce((a,b)=>a+b,0)/dqVals.length;
+    const trust = (avg * 0.7 + (p.dataAgeMin <= parseInt(p.slo.freshness) ? 100 : 50) * 0.3).toFixed(1);
+    container.innerHTML = `
+      <div class="modal-section">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+          <div style="background:var(--bg3);border-radius:10px;padding:16px;text-align:center">
+            <div style="font-size:36px;font-weight:800;color:var(--green)">${p.trustScore}</div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Trust Score</div>
+            <div style="font-size:12px;color:var(--green);margin-top:4px;font-weight:600">● ${p.trustBand}</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:10px;padding:16px;text-align:center">
+            <div style="font-size:36px;font-weight:800;color:var(--blue)">${p.dataAgeMin}m</div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Current data age</div>
+            <div style="font-size:12px;color:var(--green);margin-top:4px">SLO: ${p.slo.freshness}</div>
+          </div>
+        </div>
+        <div class="modal-section-title">DAMA 6-Dimension DQ — Latest Measurement</div>
+        ${dims.map((d,i)=>{
+          const v = dqVals[i];
+          const col = v>=99?'var(--green)':v>=95?'var(--amber)':'var(--red)';
+          return `<div class="dq-full-row">
+            <div class="dq-full-dim">${d}</div>
+            <div class="dq-full-bar"><div class="dq-full-fill" style="width:${v}%;background:${col}"></div></div>
+            <div class="dq-full-val" style="color:${col}">${v}%</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Trust Score Formula</div>
+        <div class="code-block">Trust = DQ_Score × 0.70 + Freshness_Score × 0.30
+<span class="code-comment">// DQ_Score = avg of 6 DAMA dimensions = ${(avg).toFixed(1)}%
+// Freshness_Score = 100 (current age ${p.dataAgeMin}m ≤ SLO ${p.slo.freshness})
+// Trust = ${avg.toFixed(1)} × 0.70 + 100 × 0.30 = ${p.trustScore}</span></div>
+      </div>`;
+  }
+
+  else if (tab === 'access') {
+    container.innerHTML = `
+      <div class="modal-section">
+        <div class="modal-section-title">Required Role</div>
+        <div style="font-family:var(--mono);font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--blue)">VERTIV_GLOBAL_ANALYST</div>
+        ${p.piiPresent?'<div style="margin-top:8px;font-size:12px;padding:8px 12px;background:rgba(251,113,133,0.08);border-left:3px solid var(--coral);border-radius:0 8px 8px 0;color:var(--muted)">⚠️ This product contains <strong style="color:var(--coral)">PII data</strong>. Access requires DPA sign-off. PII columns are masked for non-admin roles.</div>':''}
+        ${p.gdprApplicable?'<div style="margin-top:8px;font-size:12px;padding:8px 12px;background:rgba(56,189,248,0.05);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;color:var(--muted)">🇪🇺 GDPR applies. EU customer data is subject to GDPR Article 17 (right to erasure). Contact DPO before processing.</div>':''}
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">How to Request Access</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:flex-start;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:#FE5B1B;color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div><div style="font-size:12px;color:var(--muted)">Submit request using button below — include your use case and team</div></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:#FE5B1B;color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div><div style="font-size:12px;color:var(--muted)">Domain owner (${p.owner}) reviews within 2 business days</div></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:#FE5B1B;color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div><div style="font-size:12px;color:var(--muted)">VERTIV_GLOBAL_ANALYST role granted in Snowflake. For cross-account: Snowflake Share accepted automatically.</div></div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Sample Query</div>
+        <div class="code-block"><button class="copy-btn" onclick="copySQL()">Copy</button><span class="code-kw">${p.sqlExample.replace(/\n/g,'<br>').replace(/SELECT|FROM|WHERE|GROUP BY|ORDER BY|JOIN|ON|LIMIT|AND|DESC/g, w=>`</span><span class="code-kw">${w}</span><span class="code-comment">`)}</span></div>
+      </div>`;
+  }
+
+  else if (tab === 'lineage') {
+    container.innerHTML = `
+      <div class="modal-section">
+        <div class="modal-section-title">Data Lineage — Bronze → Silver → Gold → Product</div>
+        <div style="background:var(--bg3);border-radius:10px;padding:20px;font-size:12px">
+          <div style="display:flex;align-items:center;gap:0;overflow-x:auto">
+            ${p.inputSources.map(s=>`
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:140px;text-align:center;flex-shrink:0">
+                <div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">Bronze Source</div>
+                <div style="font-family:var(--mono);font-size:10px;color:var(--blue)">${s.split('.').pop()}</div>
+              </div>
+              <div style="color:var(--dim);padding:0 8px;font-size:18px">→</div>
+            `).join('')}
+            <div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;padding:8px 12px;min-width:120px;text-align:center;flex-shrink:0">
+              <div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">Silver (3NF)</div>
+              <div style="font-size:10px;color:var(--green)">SHA256 HK</div>
+            </div>
+            <div style="color:var(--dim);padding:0 8px;font-size:18px">→</div>
+            <div style="background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2);border-radius:8px;padding:8px 12px;min-width:120px;text-align:center;flex-shrink:0">
+              <div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">Gold (Dynamic)</div>
+              <div style="font-size:10px;color:var(--blue)">15 min lag</div>
+            </div>
+            <div style="color:var(--dim);padding:0 8px;font-size:18px">→</div>
+            <div style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:8px 12px;min-width:120px;text-align:center;flex-shrink:0">
+              <div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">Secure View</div>
+              <div style="font-size:10px;color:var(--purple)">${p.version} contract</div>
+            </div>
+            ${p.share?`<div style="color:var(--dim);padding:0 8px;font-size:18px">→</div>
+            <div style="background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);border-radius:8px;padding:8px 12px;min-width:120px;text-align:center;flex-shrink:0">
+              <div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">Marketplace</div>
+              <div style="font-size:10px;color:var(--green)">Zero-copy Share</div>
+            </div>`:``}
+          </div>
+        </div>
+        <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:11px">
+          <div style="background:var(--bg3);border-radius:8px;padding:10px 12px"><span style="color:var(--muted)">Time Travel (Bronze):</span> <span style="color:var(--text);font-weight:600">7 days</span></div>
+          <div style="background:var(--bg3);border-radius:8px;padding:10px 12px"><span style="color:var(--muted)">Time Travel (Silver):</span> <span style="color:var(--text);font-weight:600">30 days</span></div>
+          <div style="background:var(--bg3);border-radius:8px;padding:10px 12px"><span style="color:var(--muted)">Time Travel (Gold):</span> <span style="color:var(--text);font-weight:600">90 days</span></div>
+          <div style="background:var(--bg3);border-radius:8px;padding:10px 12px"><span style="color:var(--muted)">Row Access Policy:</span> <span style="color:var(--text);font-weight:600">REGIONAL_DATA_POLICY</span></div>
+          <div style="background:var(--bg3);border-radius:8px;padding:10px 12px"><span style="color:var(--muted)">PII Masking:</span> <span style="color:${p.piiPresent?'var(--coral)':'var(--muted)'};font-weight:600">${p.piiPresent?'MASK_PII_STRING applied':'No PII columns'}</span></div>
+          <div style="background:var(--bg3);border-radius:8px;padding:10px 12px"><span style="color:var(--muted)">Clustering Key:</span> <span style="color:var(--text);font-weight:600">ORDER_DATE / CUSTOMER_HK</span></div>
+        </div>
+      </div>`;
+  }
+}
+
+function requestAccess() {
+  const p = currentProduct;
+  if (confirm(`Request access to "${p.name}"?\n\nThis will notify ${p.owner} for approval.\nExpected response: 2 business days.`)) {
+    alert(`✅ Access request submitted!\n\nProduct: ${p.name}\nYou will receive a Snowflake role grant email within 2 business days.`);
+  }
+}
+
+function copySnowflakeQuery() {
+  if (currentProduct) {
+    navigator.clipboard.writeText(currentProduct.sqlExample).then(() => alert('SQL copied to clipboard!'));
+  }
+}
+
+function copySQL() {
+  if (currentProduct) {
+    navigator.clipboard.writeText(currentProduct.sqlExample).then(() => {});
+  }
+}
+
+function switchPage(page) {
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('page-title').textContent = {
+    catalog:'Data Catalog', search:'AI Search', domains:'Domains',
+    subscriptions:'My Subscriptions', requests:'Access Requests', lineage:'Data Lineage',
+    quality:'DQ Monitor', governance:'Governance', publish:'Publish Product'
+  }[page] || page;
+  if (page !== 'catalog') {
+    document.getElementById('product-grid').innerHTML = `<div class="empty" style="grid-column:1/-1">🚧 ${page.charAt(0).toUpperCase()+page.slice(1)} view — coming soon in production deployment</div>`;
+    document.getElementById('result-count').textContent = '';
+  } else {
+    applyFilter();
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+renderGrid(PRODUCTS);
+</script>
+</body>
+</html>
