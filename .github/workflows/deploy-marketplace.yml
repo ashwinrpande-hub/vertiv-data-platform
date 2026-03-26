@@ -62,6 +62,7 @@ jobs:
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
+              SnowflakePassword="${{ secrets.SNOWFLAKE_PASSWORD }}" \
               AllowedOrigins="${{ secrets.AMPLIFY_APP_URL }},http://localhost:3000"
 
       - name: Output API URL

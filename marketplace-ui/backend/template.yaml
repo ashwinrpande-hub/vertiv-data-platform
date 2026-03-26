@@ -27,11 +27,11 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /vertiv/snowflake/user
   SnowflakePassword:
-    Type: AWS::SSM::Parameter::Value<SecureString>
-    Default: /vertiv/snowflake/password
+    Type: String
+    NoEcho: true
   AllowedOrigins:
     Type: String
-    Default: "https://main.d1234567890.amplifyapp.com,http://localhost:3000"
+    Default: "https://main.d1h1tf3nh9quc5.amplifyapp.com,http://localhost:3000"
 
 Resources:
   MarketplaceApi:
