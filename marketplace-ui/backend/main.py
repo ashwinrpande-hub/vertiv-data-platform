@@ -78,18 +78,19 @@ def list_products():
         SELECT
             PRODUCT_ID,
             PRODUCT_NAME,
-            DOMAIN,
+            DOMAIN_NAME,
             DESCRIPTION,
-            OWNER_TEAM,
+            DOMAIN_OWNER_TEAM,
             TRUST_SCORE,
-            FRESHNESS_LABEL,
-            ACCESS_TIER,
-            SLA_AVAILABILITY,
-            ROW_COUNT,
+            FRESHNESS_SLA,
+            ACCESS_CLASSIFICATION,
+            AVAILABILITY_SLA,
             TAGS,
-            SHARE_AVAILABLE,
-            LAST_UPDATED
-        FROM VERTIV_PRODUCTS.INFORMATION_SCHEMA.V_DATA_MARKETPLACE
+            SHARE_NAME,
+            CURRENT_DATA_AGE_MINUTES,
+            STATUS
+        FROM VERTIV_CONFIG.METADATA.V_DATA_MARKETPLACE
+        WHERE STATUS = 'ACTIVE'
         ORDER BY TRUST_SCORE DESC
     """
     try:
@@ -105,7 +106,7 @@ def get_product(product_id: str):
     """Return full detail for a single data product."""
     sql = """
         SELECT *
-        FROM VERTIV_PRODUCTS.INFORMATION_SCHEMA.V_DATA_MARKETPLACE
+        FROM VERTIV_CONFIG.METADATA.V_DATA_MARKETPLACE
         WHERE PRODUCT_ID = %s
     """
     try:
@@ -158,11 +159,12 @@ def search_products(q: str = Query(..., min_length=1, description="Natural langu
 
     # Keyword fallback
     keyword_sql = """
-        SELECT * FROM VERTIV_PRODUCTS.INFORMATION_SCHEMA.V_DATA_MARKETPLACE
-        WHERE LOWER(PRODUCT_NAME) LIKE %s
+        SELECT * FROM VERTIV_CONFIG.METADATA.V_DATA_MARKETPLACE
+        WHERE STATUS = 'ACTIVE'
+          AND (LOWER(PRODUCT_NAME) LIKE %s
            OR LOWER(DESCRIPTION) LIKE %s
-           OR LOWER(DOMAIN) LIKE %s
-           OR LOWER(TAGS) LIKE %s
+           OR LOWER(DOMAIN_NAME) LIKE %s
+           OR LOWER(TAGS) LIKE %s)
         ORDER BY TRUST_SCORE DESC
     """
     q_like = f"%{q.lower()}%"
@@ -194,9 +196,9 @@ def platform_metrics():
     sql = """
         SELECT
             COUNT(*) AS TOTAL_PRODUCTS,
-            AVG(TRUST_SCORE) AS AVG_TRUST_SCORE,
-            SUM(ROW_COUNT) AS TOTAL_ROWS
-        FROM VERTIV_PRODUCTS.INFORMATION_SCHEMA.V_DATA_MARKETPLACE
+            AVG(TRUST_SCORE) AS AVG_TRUST_SCORE
+        FROM VERTIV_CONFIG.METADATA.V_DATA_MARKETPLACE
+        WHERE STATUS = 'ACTIVE'
     """
     try:
         rows = run_query(sql)
@@ -204,7 +206,7 @@ def platform_metrics():
         return {
             "total_products": row.get("TOTAL_PRODUCTS", 4),
             "avg_trust_score": round(float(row.get("AVG_TRUST_SCORE", 98.97)), 2),
-            "total_rows": row.get("TOTAL_ROWS", 19500),
+            "total_rows": 19500,
         }
     except Exception as e:
         logger.exception("Failed to fetch metrics")
@@ -217,20 +219,28 @@ def _normalize_product(row: dict) -> dict:
     tags = row.get("TAGS", "")
     if isinstance(tags, str):
         tags = [t.strip() for t in tags.split(",") if t.strip()]
+
+    # Parse "99.50% availability" → 99.5
+    sla_raw = str(row.get("AVAILABILITY_SLA", "99.5%"))
+    try:
+        sla_val = float(sla_raw.replace("%", "").split()[0])
+    except (ValueError, IndexError):
+        sla_val = 99.5
+
     return {
         "product_id": row.get("PRODUCT_ID", ""),
         "product_name": row.get("PRODUCT_NAME", ""),
-        "domain": row.get("DOMAIN", ""),
+        "domain": row.get("DOMAIN_NAME", ""),
         "description": row.get("DESCRIPTION", ""),
-        "owner_team": row.get("OWNER_TEAM", ""),
+        "owner_team": row.get("DOMAIN_OWNER_TEAM", ""),
         "trust_score": float(row.get("TRUST_SCORE", 0)),
-        "freshness_label": row.get("FRESHNESS_LABEL", ""),
-        "access_tier": row.get("ACCESS_TIER", "Restricted"),
-        "sla_availability": float(row.get("SLA_AVAILABILITY", 99.5)),
-        "row_count": int(row.get("ROW_COUNT", 0)),
+        "freshness_label": row.get("FRESHNESS_SLA", ""),
+        "access_tier": row.get("ACCESS_CLASSIFICATION", "Restricted"),
+        "sla_availability": sla_val,
+        "row_count": 0,
         "tags": tags,
-        "share_available": bool(row.get("SHARE_AVAILABLE", False)),
-        "last_updated": str(row.get("LAST_UPDATED", "")),
+        "share_available": bool(row.get("SHARE_NAME")),
+        "last_updated": str(row.get("CURRENT_DATA_AGE_MINUTES", "")),
     }
 
 
