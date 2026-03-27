@@ -13,7 +13,7 @@ taking any action.
 |---|---|
 | Candidate | Ashwin Pande |
 | GitHub user | ashwinrpande-hub |
-| GitHub repo | https://github.com/ashwinrpande-hub/vertiv-data-platform |
+| GitHub repo | https://github.com/your-org/modern-data-platform |
 | Snowflake account | <SNOWFLAKE_ACCOUNT> |
 | Snowflake user | <SNOWFLAKE_USER> |
 | Snowflake role (default) | GLOBAL_ANALYST |
@@ -22,17 +22,17 @@ taking any action.
 | npm version | 11.11.0 |
 | OS | Windows 11, Asus VivoBook |
 | Shell | PowerShell inside VS Code |
-| Project root | C:\Study\vertiv-data-platform |
+| Project root | C:\Study\modern-data-platform |
 | Python venv | Always active — prompt shows (.venv) |
 | Encoding | Set PYTHONIOENCODING=utf-8 before running any Python script |
-| Live DQ dashboard | https://vertiv-data-platform-tech-challange.streamlit.app |
+| Live DQ dashboard | https://your-streamlit-app.streamlit.app |
 
 ---
 
 ## 2. Project File Structure
 
 ```
-C:\Study\vertiv-data-platform\
+C:\Study\modern-data-platform\
 ├── amplify.yml                          ← AWS Amplify build spec (project root)
 ├── load_data.py                         ← Bronze data loader (write_pandas)
 ├── requirements.txt                     ← Unpinned Python deps
@@ -188,7 +188,7 @@ ENTERPRISE_DATA_PRODUCT_OWNER, FINANCE_ANALYST, EXEC_VP
 
 ### Local Dev Commands
 ```powershell
-cd C:\Study\vertiv-data-platform\marketplace-ui\frontend
+cd C:\Study\modern-data-platform\marketplace-ui\frontend
 npm install          # first time only
 npm run dev          # starts at http://localhost:3000
 npm run build        # outputs to dist/
@@ -247,7 +247,7 @@ npm run preview      # preview production build
 
 ### Local Dev
 ```powershell
-cd C:\Study\vertiv-data-platform\marketplace-ui\backend
+cd C:\Study\modern-data-platform\marketplace-ui\backend
 pip install -r requirements.txt
 # Load credentials first (see section 8)
 uvicorn main:app --reload --port 8000
@@ -278,9 +278,9 @@ uvicorn main:app --reload --port 8000
 - Template: marketplace-ui/backend/template.yaml
 - Stack name: enterprise-marketplace-api
 - Snowflake credentials stored in AWS SSM Parameter Store:
-  - /vertiv/snowflake/account (String)
-  - /vertiv/snowflake/user (String)
-  - /vertiv/snowflake/password (SecureString)
+  - /enterprise/snowflake/account (String)
+  - /enterprise/snowflake/user (String)
+  - /enterprise/snowflake/password (SecureString)
 - SAM deploy commands:
 ```bash
 cd marketplace-ui/backend
@@ -359,7 +359,7 @@ Get-Content .env | ForEach-Object {
 ## 10. Key Commands Reference
 
 ```powershell
-cd C:\Study\vertiv-data-platform
+cd C:\Study\modern-data-platform
 
 # Credentials
 Get-Content .env | ForEach-Object { if ($_ -match "^([^#].+)=(.+)$") { [System.Environment]::SetEnvironmentVariable($matches[1].Trim(), $matches[2].Trim()) } }
@@ -399,7 +399,7 @@ git add . && git commit -m "message" && git push origin main
 | Component | Status | URL |
 |---|---|---|
 | Snowflake platform (all 9 SQL steps) | LIVE | <SNOWFLAKE_ACCOUNT>.snowflakecomputing.com |
-| DQ Streamlit dashboard | LIVE | https://vertiv-data-platform-tech-challange.streamlit.app |
+| DQ Streamlit dashboard | LIVE | https://your-streamlit-app.streamlit.app |
 | Marketplace frontend (local) | WORKING | http://localhost:3000 |
 | Marketplace frontend (Amplify) | LIVE | https://main.d1h1tf3nh9quc5.amplifyapp.com |
 | Marketplace backend (Lambda) | LIVE | https://dli0m5v3qf.execute-api.us-east-1.amazonaws.com/prod |

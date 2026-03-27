@@ -91,7 +91,7 @@ INSERT INTO PLATFORM_CONFIG.METADATA.DATA_PRODUCT_CATALOG VALUES
  'v1',
  'Sales',
  'Sales Operations Team',
- 'sales-ops@vertiv.com',
+ 'sales-ops@enterprise.com',
  'Chandan Patil (Principal Data Architect)',
  'Unified sales order performance across SAP (Europe), JDE (Americas), and QAD (EMEA). '||
  'Pre-aggregated by region, product family, and time period. Single source of truth for '||
@@ -119,7 +119,7 @@ INSERT INTO PLATFORM_CONFIG.METADATA.DATA_PRODUCT_CATALOG VALUES
  'v1',
  'Sales',
  'CRM & Customer Intelligence Team',
- 'crm-team@vertiv.com',
+ 'crm-team@enterprise.com',
  'Chandan Patil (Principal Data Architect)',
  'Unified customer master combining SAP, JDE, QAD, and Salesforce. Includes ML-scored '||
  'features (churn risk, upsell propensity), revenue history, and behavioral signals. '||
@@ -147,7 +147,7 @@ INSERT INTO PLATFORM_CONFIG.METADATA.DATA_PRODUCT_CATALOG VALUES
  'v1',
  'Finance',
  'Finance & FP&A Team',
- 'finance@vertiv.com',
+ 'finance@enterprise.com',
  'Chandan Patil (Principal Data Architect)',
  'Monthly and quarterly revenue by product family, region, and ERP system. '||
  'Designed for Finance FP&A, executive reporting, and board-level dashboards. '||
@@ -175,7 +175,7 @@ INSERT INTO PLATFORM_CONFIG.METADATA.DATA_PRODUCT_CATALOG VALUES
  'v1',
  'Revenue Operations',
  'RevOps & Sales Intelligence Team',
- 'revops@vertiv.com',
+ 'revops@enterprise.com',
  'Chandan Patil (Principal Data Architect)',
  'Real-time ML prediction scores for sales opportunities: churn risk alerts, upsell '||
  'propensity, and deal health signals. Refreshed every 2 minutes from Kafka streams '||
@@ -394,7 +394,7 @@ SELECT
   -- How to consume (Natively Accessible)
   'SQL: SELECT * FROM ' || c.SNOWFLAKE_DATABASE || '.' ||
     c.SNOWFLAKE_SCHEMA || '.' || c.PRIMARY_VIEW AS SQL_ACCESS_EXAMPLE,
-  'Request access via: data-platform@vertiv.com' AS ACCESS_REQUEST
+  'Request access via: data-platform@enterprise.com' AS ACCESS_REQUEST
 FROM PLATFORM_CONFIG.METADATA.DATA_PRODUCT_CATALOG c
 LEFT JOIN PLATFORM_CONFIG.METADATA.V_PRODUCT_TRUST_SCORE t
   ON c.PRODUCT_ID = t.PRODUCT_ID
@@ -455,7 +455,7 @@ ORDER BY TRUST_SCORE DESC;
 
 -- STEP 4: Consumer accesses the product data via Snowflake Share
 -- (This runs in the CONSUMER'S Snowflake account after accepting the share)
--- CREATE DATABASE ENTERPRISE_SALES_FROM_SHARE FROM SHARE <vertiv_account>.SALES_PERFORMANCE_SHARE;
+-- CREATE DATABASE ENTERPRISE_SALES_FROM_SHARE FROM SHARE <your_snowflake_account>.SALES_PERFORMANCE_SHARE;
 -- SELECT * FROM ENTERPRISE_SALES_FROM_SHARE.SALES_PERFORMANCE.SALES_ORDERS_V1 LIMIT 100;
 
 -- STEP 5: Federated governance — add a consumer account to share

@@ -39,7 +39,7 @@ MOCK_PRODUCTS = [
         "PRODUCT_ID": "DP-001",
         "PRODUCT_NAME": "Customer 360 View",
         "DOMAIN": "CUSTOMER_EXPERIENCE",
-        "OWNER_TEAM": "cx-analytics@vertiv.com",
+        "OWNER_TEAM": "cx-analytics@enterprise.com",
         "TRUST_SCORE": 99.2,
         "STATUS": "ACTIVE",
     },
@@ -47,7 +47,7 @@ MOCK_PRODUCTS = [
         "PRODUCT_ID": "DP-002",
         "PRODUCT_NAME": "Sales Performance Dashboard",
         "DOMAIN": "SALES_PERFORMANCE",
-        "OWNER_TEAM": "sales-ops@vertiv.com",
+        "OWNER_TEAM": "sales-ops@enterprise.com",
         "TRUST_SCORE": 87.5,
         "STATUS": "ACTIVE",
     },
@@ -247,7 +247,7 @@ TOOL_DEFINITIONS: list[dict] = [
     {
         "name": "create_github_issue",
         "description": (
-            "Create a GitHub issue in the vertiv-data-platform repository "
+            "Create a GitHub issue in the modern-data-platform repository "
             "with the full RCA report for engineering follow-up. "
             "Returns the simulated issue URL and issue number."
         ),
@@ -484,7 +484,7 @@ class DQRCAAgent:
         """Simulate creating a GitHub issue."""
         import random
         issue_num = random.randint(200, 999)
-        repo      = "vertiv/vertiv-data-platform"
+        repo      = "your-org/modern-data-platform"
         url       = f"https://github.com/{repo}/issues/{issue_num}"
         msg = (
             f"\n{'='*70}\n"

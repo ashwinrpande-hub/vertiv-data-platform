@@ -64,7 +64,7 @@ Resources:
             Path: /{proxy+}
             Method: ANY
       Tags:
-        Project: vertiv-data-platform
+        Project: modern-data-platform
         Component: marketplace-api
 
 Outputs:

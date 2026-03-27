@@ -36,15 +36,15 @@ jobs:
       - name: Store Snowflake secrets in SSM
         run: |
           aws ssm put-parameter \
-            --name /vertiv/snowflake/account \
+            --name /enterprise/snowflake/account \
             --value "${{ secrets.SNOWFLAKE_ACCOUNT }}" \
             --type String --overwrite
           aws ssm put-parameter \
-            --name /vertiv/snowflake/user \
+            --name /enterprise/snowflake/user \
             --value "${{ secrets.SNOWFLAKE_USER }}" \
             --type String --overwrite
           aws ssm put-parameter \
-            --name /vertiv/snowflake/password \
+            --name /enterprise/snowflake/password \
             --value "${{ secrets.SNOWFLAKE_PASSWORD }}" \
             --type SecureString --overwrite
 

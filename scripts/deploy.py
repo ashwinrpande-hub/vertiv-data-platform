@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-vertiv-data-platform/scripts/deploy.py
+modern-data-platform/scripts/deploy.py
 
 Executes all Snowflake SQL files in the correct order.
 Run after setting SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD in .env

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-vertiv-data-platform/python/snowpark/feature_engineering.py
+modern-data-platform/python/snowpark/feature_engineering.py
 
 Point-in-time correct ML feature engineering using Snowpark
 Writes to ENTERPRISE_ANALYTICS.ML_FEATURES + AI vector tables

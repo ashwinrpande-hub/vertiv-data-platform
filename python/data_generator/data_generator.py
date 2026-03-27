@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-vertiv-data-platform/python/data_generator/data_generator.py
+modern-data-platform/python/data_generator/data_generator.py
 
 Generates synthetic Enterprise Co sales data for 5 source systems:
   SAP (Europe), JDE (Americas), QAD (EMEA), Salesforce, Kafka events
@@ -213,7 +213,7 @@ def gen_kafka_events(orders: pd.DataFrame, n: int) -> pd.DataFrame:
         etime = datetime.now() - timedelta(minutes=random.randint(0, 2880))
         rows.append({
             "EVENT_ID":        str(uuid.uuid4()),
-            "KAFKA_TOPIC":     "vertiv.sales.orders.events",
+            "KAFKA_TOPIC":     "enterprise.sales.orders.events",
             "KAFKA_PARTITION": random.randint(0, 11),
             "KAFKA_OFFSET":    i * 100 + random.randint(0, 99),
             "EVENT_TIMESTAMP": etime.strftime("%Y-%m-%d %H:%M:%S"),

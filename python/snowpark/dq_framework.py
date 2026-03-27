@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-vertiv-data-platform/python/snowpark/dq_framework.py
+modern-data-platform/python/snowpark/dq_framework.py
 
 DAMA 6-Dimension Data Quality Framework using Snowpark
 Runs checks on Silver layer, logs results to PLATFORM_AUDIT.DQ tables

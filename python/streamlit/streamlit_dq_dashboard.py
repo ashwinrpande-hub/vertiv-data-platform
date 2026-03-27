@@ -1,5 +1,5 @@
 """
-vertiv-data-platform/python/streamlit/streamlit_dq_dashboard.py
+modern-data-platform/python/streamlit/streamlit_dq_dashboard.py
 
 Modern AI Data Platform — Live DQ Dashboard
 Deploy TWO ways:
