@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vertiv Data Platform — Architecture & Data Models</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c12;
+    --bg2: #0d1520;
+    --bg3: #111d2e;
+    --panel: #0f1a26;
+    --border: #1e3248;
+    --border2: #243d57;
+    --cyan: #00d4ff;
+    --cyan2: #00a8cc;
+    --amber: #ffb340;
+    --amber2: #e69b2a;
+    --green: #00e5a0;
+    --red: #ff5555;
+    --purple: #b06aff;
+    --text: #c8dbe8;
+    --text2: #7a9ab5;
+    --text3: #4a6a85;
+    --bronze: #cd7f32;
+    --bronze2: #a0522d;
+    --silver: #aab8c2;
+    --silver2: #7a8f9c;
+    --gold: #ffd700;
+    --gold2: #c8a400;
+    --font-main: 'Syne', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, #0a1520 0%, #0d1e30 50%, #091522 100%);
+    border-bottom: 1px solid var(--border2);
+    padding: 28px 40px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content:'';
+    position:absolute; top:0; left:0; right:0; bottom:0;
+    background: repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(0,212,255,0.02) 60px, rgba(0,212,255,0.02) 61px);
+    pointer-events:none;
+  }
+  .header-inner { position:relative; z-index:1; }
+  .header-top { display:flex; align-items:center; gap:16px; margin-bottom:8px; }
+  .logo-mark {
+    width:42px; height:42px; border-radius:8px;
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; font-weight:800; color:#000; font-family:var(--font-mono);
+    flex-shrink:0;
+  }
+  .header h1 { font-size:22px; font-weight:800; letter-spacing:-.5px; }
+  .header h1 span { color:var(--cyan); }
+  .header-meta { display:flex; gap:24px; margin-top:10px; flex-wrap:wrap; }
+  .meta-chip {
+    font-family:var(--font-mono); font-size:11px; color:var(--text2);
+    background:rgba(0,212,255,0.06); border:1px solid var(--border2);
+    padding:4px 10px; border-radius:4px; display:flex; align-items:center; gap:6px;
+  }
+  .meta-chip .dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ── TABS ── */
+  .tabs {
+    display:flex; gap:2px; padding:16px 40px 0;
+    background:var(--bg2); border-bottom:1px solid var(--border);
+    overflow-x:auto;
+  }
+  .tab {
+    padding:10px 20px; font-size:12px; font-weight:700; font-family:var(--font-mono);
+    letter-spacing:.5px; text-transform:uppercase; cursor:pointer;
+    border:none; background:transparent; color:var(--text3);
+    border-bottom:2px solid transparent; transition:all .2s;
+    white-space:nowrap; display:flex; align-items:center; gap:8px;
+  }
+  .tab:hover { color:var(--text); }
+  .tab.active { color:var(--cyan); border-bottom-color:var(--cyan); }
+  .tab-badge {
+    font-size:10px; background:rgba(0,212,255,0.12);
+    border:1px solid rgba(0,212,255,0.2); padding:1px 6px; border-radius:10px;
+  }
+
+  /* ── CONTENT ── */
+  .content { display:none; padding:32px 40px; }
+  .content.active { display:block; }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-size:20px; font-weight:800; margin-bottom:8px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .section-title .line {
+    flex:1; height:1px; background:linear-gradient(90deg, var(--border2), transparent);
+  }
+  .section-sub { font-size:13px; color:var(--text2); margin-bottom:28px; font-family:var(--font-mono); }
+
+  /* ── ARCH DIAGRAM ── */
+  .arch-container { width:100%; overflow-x:auto; }
+  .arch-svg { display:block; min-width:900px; }
+
+  /* ── LAYER GRID ── */
+  .layer-grid { display:grid; grid-template-columns:1fr; gap:20px; }
+  .layer-card {
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:12px; overflow:hidden;
+  }
+  .layer-header {
+    padding:14px 20px; display:flex; align-items:center;
+    gap:12px; border-bottom:1px solid var(--border);
+  }
+  .layer-icon { font-size:20px; }
+  .layer-title { font-weight:700; font-size:15px; }
+  .layer-desc { font-size:12px; color:var(--text2); margin-top:2px; font-family:var(--font-mono); }
+  .layer-body { padding:20px; }
+
+  /* ── TABLE SCHEMA ── */
+  .schema-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:16px; }
+  .schema-card {
+    background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; overflow:hidden;
+  }
+  .schema-card-header {
+    padding:10px 14px; font-family:var(--font-mono); font-size:12px;
+    font-weight:700; display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border);
+  }
+  .schema-card-header .tname { color:var(--cyan); }
+  .schema-card-header .source-badge {
+    font-size:10px; padding:2px 7px; border-radius:3px;
+    background:rgba(0,212,255,0.08); color:var(--text2); border:1px solid var(--border2);
+  }
+  .schema-table { width:100%; border-collapse:collapse; }
+  .schema-table th {
+    text-align:left; padding:6px 14px; font-family:var(--font-mono);
+    font-size:10px; color:var(--text3); text-transform:uppercase;
+    letter-spacing:.5px; background:rgba(255,255,255,0.02);
+    border-bottom:1px solid var(--border);
+  }
+  .schema-table td {
+    padding:5px 14px; font-family:var(--font-mono); font-size:11px;
+    border-bottom:1px solid rgba(30,50,72,.5); vertical-align:top;
+  }
+  .schema-table tr:last-child td { border-bottom:none; }
+  .col-name { color:var(--text); }
+  .col-type { color:var(--amber); }
+  .col-desc { color:var(--text3); font-size:10px; }
+  .pk-badge { color:var(--gold); font-size:9px; margin-left:4px; }
+  .fk-badge { color:var(--purple); font-size:9px; margin-left:4px; }
+  .pii-badge {
+    color:var(--red); font-size:9px; padding:1px 4px;
+    border:1px solid rgba(255,85,85,.3); border-radius:2px;
+  }
+  .meta-badge {
+    color:var(--text3); font-size:9px; padding:1px 4px;
+    border:1px solid var(--border); border-radius:2px;
+  }
+
+  /* ── LINEAGE ── */
+  .lineage-container { overflow-x:auto; }
+  .lineage-table { width:100%; border-collapse:collapse; min-width:900px; }
+  .lineage-table th {
+    padding:10px 16px; font-family:var(--font-mono); font-size:11px;
+    font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+    background:var(--bg3); border-bottom:2px solid var(--border2);
+    text-align:left; color:var(--text2);
+  }
+  .lineage-table td {
+    padding:9px 16px; font-family:var(--font-mono); font-size:11px;
+    border-bottom:1px solid var(--border); vertical-align:top;
+  }
+  .lineage-table tr:hover td { background:rgba(0,212,255,0.03); }
+  .l-src { color:var(--bronze); }
+  .l-bronze { color:var(--bronze); }
+  .l-silver { color:var(--silver); }
+  .l-gold { color:var(--gold); }
+  .l-transform { color:var(--cyan2); font-size:10px; }
+  .l-notes { color:var(--text3); font-size:10px; }
+  .section-group {
+    background:rgba(0,212,255,0.04); padding:7px 16px;
+    font-family:var(--font-mono); font-size:11px; font-weight:700;
+    color:var(--cyan); letter-spacing:.5px;
+    border-bottom:1px solid var(--border2); border-top:1px solid var(--border2);
+  }
+
+  /* ── PERF CARD ── */
+  .perf-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px; margin-bottom:28px; }
+  .perf-card {
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:8px; padding:16px;
+  }
+  .perf-card-title {
+    font-size:12px; font-weight:700; color:var(--cyan);
+    margin-bottom:10px; font-family:var(--font-mono);
+    letter-spacing:.5px; text-transform:uppercase;
+    display:flex; align-items:center; gap:8px;
+  }
+  .perf-card-title::before {
+    content:''; width:4px; height:14px; background:var(--cyan); border-radius:2px;
+  }
+  .perf-item {
+    font-family:var(--font-mono); font-size:11px; color:var(--text2);
+    padding:4px 0; border-bottom:1px solid rgba(30,50,72,.5);
+    display:flex; align-items:flex-start; gap:8px;
+  }
+  .perf-item:last-child { border-bottom:none; }
+  .perf-item .bullet { color:var(--amber); flex-shrink:0; margin-top:1px; }
+  .perf-item .val { color:var(--text); font-size:11px; }
+  .perf-item .val span { color:var(--green); }
+
+  /* ── WH TABLE ── */
+  .wh-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-bottom:28px; }
+  .wh-card {
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:8px; padding:14px;
+  }
+  .wh-name { font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--amber); margin-bottom:6px; }
+  .wh-size {
+    font-size:22px; font-weight:800; margin-bottom:4px;
+    background:linear-gradient(135deg, var(--cyan), var(--purple));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .wh-detail { font-family:var(--font-mono); font-size:10px; color:var(--text3); }
+  .wh-detail span { color:var(--text2); }
+
+  .tag {
+    display:inline-block; font-family:var(--font-mono); font-size:10px;
+    padding:2px 8px; border-radius:3px; margin:2px;
+  }
+  .tag-cyan { background:rgba(0,212,255,0.1); color:var(--cyan); border:1px solid rgba(0,212,255,.25); }
+  .tag-amber { background:rgba(255,179,64,0.1); color:var(--amber); border:1px solid rgba(255,179,64,.25); }
+  .tag-green { background:rgba(0,229,160,0.1); color:var(--green); border:1px solid rgba(0,229,160,.25); }
+  .tag-purple { background:rgba(176,106,255,0.1); color:var(--purple); border:1px solid rgba(176,106,255,.25); }
+  .tag-red { background:rgba(255,85,85,0.1); color:var(--red); border:1px solid rgba(255,85,85,.25); }
+
+  svg text { font-family: 'JetBrains Mono', monospace; }
+
+  /* ── DIVIDER ── */
+  .divider { height:1px; background:linear-gradient(90deg,transparent,var(--border2),transparent); margin:28px 0; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg2); }
+  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="logo-mark">V</div>
+      <div>
+        <h1>Vertiv <span>Data Platform</span> — Architecture & Data Models</h1>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="meta-chip"><span class="dot"></span>Snowflake Medallion Architecture</div>
+      <div class="meta-chip">Sources: SAP · JDE · QAD · Salesforce · Kafka</div>
+      <div class="meta-chip">Layers: Bronze → Silver → Gold → Data Products</div>
+      <div class="meta-chip">6 Databases · 4 Warehouses · Dynamic Tables</div>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('arch')">🏗 Architecture</button>
+  <button class="tab" onclick="showTab('bronze')">🥉 Bronze Layer <span class="tab-badge">9 tables</span></button>
+  <button class="tab" onclick="showTab('silver')">🥈 Silver Layer <span class="tab-badge">5 tables</span></button>
+  <button class="tab" onclick="showTab('gold')">🥇 Gold Layer <span class="tab-badge">8 tables</span></button>
+  <button class="tab" onclick="showTab('lineage')">🔀 Data Lineage & Mapping</button>
+  <button class="tab" onclick="showTab('perf')">⚡ Performance</button>
+</div>
+
+<!-- ════════════════════════ ARCHITECTURE ════════════════════════ -->
+<div id="tab-arch" class="content active">
+  <div class="section-title">Platform Architecture <div class="line"></div></div>
+  <div class="section-sub">Snowflake Medallion Architecture · Multi-ERP Global Data Platform · Dehghani Data Mesh Principles</div>
+
+  <div class="arch-container">
+    <svg class="arch-svg" viewBox="0 0 1060 720" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#080c12"/>
+          <stop offset="100%" stop-color="#0d1520"/>
+        </linearGradient>
+        <linearGradient id="bronzeGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3a1a00"/>
+          <stop offset="100%" stop-color="#1e0e00"/>
+        </linearGradient>
+        <linearGradient id="silverGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1a2430"/>
+          <stop offset="100%" stop-color="#0f1a26"/>
+        </linearGradient>
+        <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2a1e00"/>
+          <stop offset="100%" stop-color="#1a1200"/>
+        </linearGradient>
+        <linearGradient id="cyanGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#00d4ff"/>
+          <stop offset="100%" stop-color="#0090cc"/>
+        </linearGradient>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#00d4ff" opacity=".7"/>
+        </marker>
+        <marker id="arrAmber" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#ffb340" opacity=".7"/>
+        </marker>
+        <marker id="arrGold" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#ffd700" opacity=".7"/>
+        </marker>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Background -->
+      <rect width="1060" height="720" fill="url(#bgGrad)"/>
+      <!-- Grid lines -->
+      <g opacity=".04" stroke="#00d4ff" stroke-width=".5">
+        <line x1="0" y1="60" x2="1060" y2="60"/>
+        <line x1="0" y1="120" x2="1060" y2="120"/>
+        <line x1="0" y1="180" x2="1060" y2="180"/>
+        <line x1="0" y1="240" x2="1060" y2="240"/>
+        <line x1="0" y1="300" x2="1060" y2="300"/>
+        <line x1="0" y1="360" x2="1060" y2="360"/>
+        <line x1="0" y1="420" x2="1060" y2="420"/>
+        <line x1="0" y1="480" x2="1060" y2="480"/>
+        <line x1="0" y1="540" x2="1060" y2="540"/>
+        <line x1="0" y1="600" x2="1060" y2="600"/>
+        <line x1="0" y1="660" x2="1060" y2="660"/>
+      </g>
+
+      <!-- ── SOURCES LANE ── -->
+      <rect x="10" y="14" width="160" height="700" rx="8" fill="#080e16" stroke="#1e3248" stroke-width="1"/>
+      <text x="90" y="36" text-anchor="middle" font-size="10" font-weight="700" fill="#7a9ab5" letter-spacing="2">SOURCES</text>
+
+      <!-- SAP Europe -->
+      <rect x="20" y="46" width="140" height="52" rx="6" fill="#1a0a00" stroke="#cd7f32" stroke-width="1.5"/>
+      <text x="90" y="66" text-anchor="middle" font-size="11" font-weight="700" fill="#cd7f32">SAP S/4HANA</text>
+      <text x="90" y="82" text-anchor="middle" font-size="9" fill="#7a6040">Europe Region</text>
+      <text x="90" y="94" text-anchor="middle" font-size="8" fill="#4a3820">VBAK · VBAP · KNA1</text>
+
+      <!-- JDE Americas -->
+      <rect x="20" y="108" width="140" height="52" rx="6" fill="#001a0a" stroke="#00b86a" stroke-width="1.5"/>
+      <text x="90" y="128" text-anchor="middle" font-size="11" font-weight="700" fill="#00b86a">JDE E1</text>
+      <text x="90" y="144" text-anchor="middle" font-size="9" fill="#006640">Americas Region</text>
+      <text x="90" y="156" text-anchor="middle" font-size="8" fill="#003820">F4211 · F0101</text>
+
+      <!-- QAD EMEA -->
+      <rect x="20" y="170" width="140" height="52" rx="6" fill="#001020" stroke="#0080cc" stroke-width="1.5"/>
+      <text x="90" y="190" text-anchor="middle" font-size="11" font-weight="700" fill="#0080cc">QAD ERP</text>
+      <text x="90" y="206" text-anchor="middle" font-size="9" fill="#004a80">EMEA Region</text>
+      <text x="90" y="218" text-anchor="middle" font-size="8" fill="#003060">so_mstr · cust_mstr</text>
+
+      <!-- Salesforce -->
+      <rect x="20" y="232" width="140" height="52" rx="6" fill="#0a0020" stroke="#8844dd" stroke-width="1.5"/>
+      <text x="90" y="252" text-anchor="middle" font-size="11" font-weight="700" fill="#8844dd">Salesforce CRM</text>
+      <text x="90" y="268" text-anchor="middle" font-size="9" fill="#4a2080">Global</text>
+      <text x="90" y="280" text-anchor="middle" font-size="8" fill="#300060">Opportunity · Account</text>
+
+      <!-- Kafka -->
+      <rect x="20" y="294" width="140" height="52" rx="6" fill="#1a1000" stroke="#ff8c00" stroke-width="1.5"/>
+      <text x="90" y="314" text-anchor="middle" font-size="11" font-weight="700" fill="#ff8c00">Kafka Events</text>
+      <text x="90" y="330" text-anchor="middle" font-size="9" fill="#804200">Snowpipe Streaming</text>
+      <text x="90" y="342" text-anchor="middle" font-size="8" fill="#402200">order_events VARIANT</text>
+
+      <!-- Config DB -->
+      <rect x="20" y="440" width="140" height="52" rx="6" fill="#101020" stroke="#4466aa" stroke-width="1"/>
+      <text x="90" y="460" text-anchor="middle" font-size="10" font-weight="700" fill="#4466aa">VERTIV_CONFIG</text>
+      <text x="90" y="474" text-anchor="middle" font-size="8" fill="#303060">FX rates · DQ rules</text>
+      <text x="90" y="486" text-anchor="middle" font-size="8" fill="#303060">STT mapping · Lineage</text>
+
+      <!-- Audit DB -->
+      <rect x="20" y="502" width="140" height="52" rx="6" fill="#1a0010" stroke="#884466" stroke-width="1"/>
+      <text x="90" y="522" text-anchor="middle" font-size="10" font-weight="700" fill="#884466">VERTIV_AUDIT</text>
+      <text x="90" y="536" text-anchor="middle" font-size="8" fill="#604040">DQ logs · Quarantine</text>
+      <text x="90" y="548" text-anchor="middle" font-size="8" fill="#604040">Rejected records</text>
+
+      <!-- ── BRONZE LANE ── -->
+      <rect x="182" y="14" width="200" height="700" rx="8" fill="url(#bronzeGrad)" stroke="#cd7f32" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="282" y="36" text-anchor="middle" font-size="10" font-weight="700" fill="#cd7f32" letter-spacing="2">BRONZE · VERTIV_RAW</text>
+
+      <!-- Bronze tables -->
+      <rect x="192" y="46" width="180" height="38" rx="5" fill="#2a1200" stroke="#cd7f32" stroke-width="1"/>
+      <text x="282" y="63" text-anchor="middle" font-size="10" font-weight="600" fill="#cd9050">SAP_EUROPE</text>
+      <text x="282" y="76" text-anchor="middle" font-size="8" fill="#7a5030">SALES_ORDERS · ORDER_ITEMS · CUSTOMERS</text>
+
+      <rect x="192" y="94" width="180" height="38" rx="5" fill="#002a10" stroke="#00b86a" stroke-width="1"/>
+      <text x="282" y="111" text-anchor="middle" font-size="10" font-weight="600" fill="#00b86a">JDE_AMERICAS</text>
+      <text x="282" y="124" text-anchor="middle" font-size="8" fill="#006040">SALES_ORDERS · CUSTOMERS</text>
+
+      <rect x="192" y="142" width="180" height="38" rx="5" fill="#001828" stroke="#0080cc" stroke-width="1"/>
+      <text x="282" y="159" text-anchor="middle" font-size="10" font-weight="600" fill="#0080cc">QAD_EMEA</text>
+      <text x="282" y="172" text-anchor="middle" font-size="8" fill="#005080">SALES_ORDERS · CUSTOMERS</text>
+
+      <rect x="192" y="190" width="180" height="38" rx="5" fill="#180030" stroke="#8844dd" stroke-width="1"/>
+      <text x="282" y="207" text-anchor="middle" font-size="10" font-weight="600" fill="#8844dd">SALESFORCE_GLOBAL</text>
+      <text x="282" y="220" text-anchor="middle" font-size="8" fill="#5030a0">OPPORTUNITIES · ACCOUNTS</text>
+
+      <rect x="192" y="238" width="180" height="38" rx="5" fill="#281800" stroke="#ff8c00" stroke-width="1"/>
+      <text x="282" y="255" text-anchor="middle" font-size="10" font-weight="600" fill="#ff8c00">REALTIME (Kafka)</text>
+      <text x="282" y="268" text-anchor="middle" font-size="8" fill="#805020">ORDER_EVENTS (VARIANT)</text>
+
+      <!-- Bronze features box -->
+      <rect x="192" y="290" width="180" height="110" rx="5" fill="rgba(205,127,50,.06)" stroke="rgba(205,127,50,.3)" stroke-width="1"/>
+      <text x="282" y="308" text-anchor="middle" font-size="9" font-weight="700" fill="#cd7f32">DESIGN PATTERNS</text>
+      <text x="200" y="325" font-size="8" fill="#a06030">• Schema-on-write (ERP)</text>
+      <text x="200" y="338" font-size="8" fill="#a06030">• VARIANT for events</text>
+      <text x="200" y="351" font-size="8" fill="#a06030">• CLUSTER BY (LOAD_DATE)</text>
+      <text x="200" y="364" font-size="8" fill="#a06030">• 7-day data retention</text>
+      <text x="200" y="377" font-size="8" fill="#a06030">• CDC Streams (APPEND_ONLY)</text>
+      <text x="200" y="390" font-size="8" fill="#a06030">• Snowpipe auto-ingest</text>
+
+      <!-- Ingest WH -->
+      <rect x="192" y="416" width="180" height="36" rx="5" fill="rgba(255,179,64,.06)" stroke="rgba(255,179,64,.3)" stroke-width="1"/>
+      <text x="282" y="432" text-anchor="middle" font-size="9" font-weight="700" fill="#ffb340">⚙ INGEST_WH  · XSMALL</text>
+      <text x="282" y="446" text-anchor="middle" font-size="8" fill="#806030">AUTO_SUSPEND=60s · AUTO_RESUME</text>
+
+      <!-- ── SILVER LANE ── -->
+      <rect x="394" y="14" width="220" height="700" rx="8" fill="url(#silverGrad)" stroke="#aab8c2" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="504" y="36" text-anchor="middle" font-size="10" font-weight="700" fill="#aab8c2" letter-spacing="2">SILVER · VERTIV_CURATED</text>
+
+      <!-- Silver tables -->
+      <rect x="404" y="46" width="200" height="48" rx="5" fill="#0d2030" stroke="#aab8c2" stroke-width="1"/>
+      <text x="504" y="64" text-anchor="middle" font-size="10" font-weight="600" fill="#aab8c2">CUSTOMER</text>
+      <text x="504" y="78" text-anchor="middle" font-size="8" fill="#708090">SHA256 hash key · SCD Type 2</text>
+      <text x="504" y="89" text-anchor="middle" font-size="7" fill="#506070">PK: CUSTOMER_HK + EFFECTIVE_FROM</text>
+
+      <rect x="404" y="104" width="200" height="48" rx="5" fill="#0d2030" stroke="#aab8c2" stroke-width="1"/>
+      <text x="504" y="122" text-anchor="middle" font-size="10" font-weight="600" fill="#aab8c2">PRODUCT</text>
+      <text x="504" y="136" text-anchor="middle" font-size="8" fill="#708090">SHA256 hash key · insert-only</text>
+      <text x="504" y="147" text-anchor="middle" font-size="7" fill="#506070">PK: PRODUCT_HK + EFFECTIVE_FROM</text>
+
+      <rect x="404" y="162" width="200" height="48" rx="5" fill="#0d2030" stroke="#aab8c2" stroke-width="1"/>
+      <text x="504" y="180" text-anchor="middle" font-size="10" font-weight="600" fill="#aab8c2">SALES_ORDER</text>
+      <text x="504" y="194" text-anchor="middle" font-size="8" fill="#708090">FX normalized to USD</text>
+      <text x="504" y="205" text-anchor="middle" font-size="7" fill="#506070">FK: CUSTOMER_HK, SALESPERSON_HK</text>
+
+      <rect x="404" y="220" width="200" height="48" rx="5" fill="#0d2030" stroke="#aab8c2" stroke-width="1"/>
+      <text x="504" y="238" text-anchor="middle" font-size="10" font-weight="600" fill="#aab8c2">ORDER_LINE</text>
+      <text x="504" y="252" text-anchor="middle" font-size="8" fill="#708090">3NF separated from header</text>
+      <text x="504" y="263" text-anchor="middle" font-size="7" fill="#506070">FK: ORDER_HK, PRODUCT_HK</text>
+
+      <rect x="404" y="278" width="200" height="38" rx="5" fill="#0d2030" stroke="#8844dd" stroke-width="1"/>
+      <text x="504" y="295" text-anchor="middle" font-size="10" font-weight="600" fill="#aa88ff">OPPORTUNITY</text>
+      <text x="504" y="308" text-anchor="middle" font-size="8" fill="#5030a0">Salesforce CRM → Silver</text>
+
+      <!-- Dynamic Tables -->
+      <rect x="404" y="330" width="200" height="80" rx="5" fill="rgba(0,212,255,.06)" stroke="rgba(0,212,255,.3)" stroke-width="1"/>
+      <text x="504" y="348" text-anchor="middle" font-size="9" font-weight="700" fill="#00d4ff">⚡ DYNAMIC TABLES</text>
+      <text x="412" y="364" font-size="8" fill="#008090">DT_SILVER_CUSTOMER_SAP</text>
+      <text x="590" y="364" font-size="7" fill="#006070">5-min lag</text>
+      <text x="412" y="378" font-size="8" fill="#008090">DT_SILVER_ORDER_SAP</text>
+      <text x="590" y="378" font-size="7" fill="#006070">5-min lag</text>
+      <text x="412" y="394" font-size="7" fill="#406070">Auto-incremental · no Airflow needed</text>
+
+      <!-- Silver design patterns -->
+      <rect x="404" y="424" width="200" height="100" rx="5" fill="rgba(170,184,194,.04)" stroke="rgba(170,184,194,.2)" stroke-width="1"/>
+      <text x="504" y="442" text-anchor="middle" font-size="9" font-weight="700" fill="#aab8c2">DESIGN PATTERNS</text>
+      <text x="412" y="458" font-size="8" fill="#708090">• SHA256(source|pk) = HASH_KEY</text>
+      <text x="412" y="471" font-size="8" fill="#708090">• HASH_DIFF for change detection</text>
+      <text x="412" y="484" font-size="8" fill="#708090">• 3NF: no transitive deps</text>
+      <text x="412" y="497" font-size="8" fill="#708090">• Insert-only SCD2</text>
+      <text x="412" y="510" font-size="8" fill="#708090">• DQ completeness scoring</text>
+
+      <!-- Transform WH -->
+      <rect x="404" y="536" width="200" height="36" rx="5" fill="rgba(255,179,64,.06)" stroke="rgba(255,179,64,.3)" stroke-width="1"/>
+      <text x="504" y="552" text-anchor="middle" font-size="9" font-weight="700" fill="#ffb340">⚙ TRANSFORM_WH  · SMALL</text>
+      <text x="504" y="566" text-anchor="middle" font-size="8" fill="#806030">AUTO_SUSPEND=60s · Dynamic Tables</text>
+
+      <!-- ── GOLD LANE ── -->
+      <rect x="626" y="14" width="220" height="700" rx="8" fill="url(#goldGrad)" stroke="#ffd700" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="736" y="36" text-anchor="middle" font-size="10" font-weight="700" fill="#ffd700" letter-spacing="2">GOLD · VERTIV_ANALYTICS</text>
+
+      <!-- Gold BI -->
+      <rect x="636" y="46" width="200" height="48" rx="5" fill="#2a1800" stroke="#ffd700" stroke-width="1"/>
+      <text x="736" y="60" text-anchor="middle" font-size="9" font-weight="700" fill="#ffd700">BI STAR SCHEMA</text>
+      <text x="644" y="76" font-size="8" fill="#a07820">DIM_DATE · DIM_REGION</text>
+      <text x="644" y="87" font-size="8" fill="#a07820">DIM_PRODUCT · DIM_CUSTOMER</text>
+
+      <rect x="636" y="104" width="200" height="32" rx="5" fill="#2a1800" stroke="#ffd700" stroke-width="1"/>
+      <text x="736" y="118" text-anchor="middle" font-size="9" font-weight="700" fill="#ffd700">FACT_SALES_ORDERS</text>
+      <text x="736" y="130" text-anchor="middle" font-size="8" fill="#806020">15-min lag Dynamic Table</text>
+
+      <!-- Gold ML -->
+      <rect x="636" y="146" width="200" height="58" rx="5" fill="#1a1000" stroke="#00e5a0" stroke-width="1"/>
+      <text x="736" y="162" text-anchor="middle" font-size="9" font-weight="700" fill="#00e5a0">ML FEATURE STORE</text>
+      <text x="644" y="177" font-size="8" fill="#408060">CUSTOMER_REVENUE_FEATURES</text>
+      <text x="644" y="190" font-size="8" fill="#408060">PRODUCT_AFFINITY_FEATURES</text>
+      <text x="644" y="198" font-size="7" fill="#2a5040">MODEL_PREDICTIONS</text>
+
+      <!-- Gold AI -->
+      <rect x="636" y="214" width="200" height="56" rx="5" fill="#180030" stroke="#b06aff" stroke-width="1"/>
+      <text x="736" y="230" text-anchor="middle" font-size="9" font-weight="700" fill="#b06aff">AI / GenAI ZONE</text>
+      <text x="644" y="246" font-size="8" fill="#7040b0">CUSTOMER_360_VECTORS</text>
+      <text x="644" y="259" font-size="8" fill="#7040b0">PRODUCT_VECTORS</text>
+      <text x="644" y="268" font-size="7" fill="#5030a0">CORTEX_SEARCH_INDEX</text>
+
+      <!-- Materialized Views -->
+      <rect x="636" y="280" width="200" height="56" rx="5" fill="rgba(255,215,0,.06)" stroke="rgba(255,215,0,.25)" stroke-width="1"/>
+      <text x="736" y="296" text-anchor="middle" font-size="9" font-weight="700" fill="#ffd700">MATERIALIZED VIEWS</text>
+      <text x="644" y="311" font-size="8" fill="#806020">MV_REGIONAL_SALES_DAILY</text>
+      <text x="644" y="325" font-size="8" fill="#806020">MV_PRODUCT_REVENUE_MONTHLY</text>
+
+      <!-- Gold patterns -->
+      <rect x="636" y="346" width="200" height="100" rx="5" fill="rgba(255,215,0,.04)" stroke="rgba(255,215,0,.15)" stroke-width="1"/>
+      <text x="736" y="364" text-anchor="middle" font-size="9" font-weight="700" fill="#ffd700">DESIGN PATTERNS</text>
+      <text x="644" y="380" font-size="8" fill="#806020">• Star schema for BI</text>
+      <text x="644" y="393" font-size="8" fill="#806020">• Point-in-time ML features</text>
+      <text x="644" y="406" font-size="8" fill="#806020">• 768-dim Cortex embeddings</text>
+      <text x="644" y="419" font-size="8" fill="#806020">• Search optimization on dims</text>
+      <text x="644" y="432" font-size="8" fill="#806020">• MDM golden customer record</text>
+
+      <!-- Warehouses -->
+      <rect x="636" y="458" width="200" height="36" rx="5" fill="rgba(255,179,64,.06)" stroke="rgba(255,179,64,.3)" stroke-width="1"/>
+      <text x="736" y="474" text-anchor="middle" font-size="9" font-weight="700" fill="#ffb340">⚙ ANALYTICS_WH  · MEDIUM</text>
+      <text x="736" y="487" text-anchor="middle" font-size="8" fill="#806030">Multi-cluster 1-3 · ECONOMY</text>
+      <rect x="636" y="502" width="200" height="36" rx="5" fill="rgba(255,179,64,.06)" stroke="rgba(255,179,64,.3)" stroke-width="1"/>
+      <text x="736" y="518" text-anchor="middle" font-size="9" font-weight="700" fill="#ffb340">⚙ ML_WH  · LARGE</text>
+      <text x="736" y="531" text-anchor="middle" font-size="8" fill="#806030">Snowpark Python · suspend fast</text>
+
+      <!-- ── DATA PRODUCTS LANE ── -->
+      <rect x="858" y="14" width="188" height="700" rx="8" fill="#080c12" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="952" y="36" text-anchor="middle" font-size="10" font-weight="700" fill="#00d4ff" letter-spacing="2">DATA PRODUCTS</text>
+
+      <rect x="868" y="46" width="168" height="44" rx="5" fill="#001a24" stroke="#00d4ff" stroke-width="1"/>
+      <text x="952" y="63" text-anchor="middle" font-size="9" font-weight="700" fill="#00d4ff">VERTIV_PRODUCTS</text>
+      <text x="952" y="76" text-anchor="middle" font-size="8" fill="#006080">Snowflake Marketplace</text>
+      <text x="952" y="85" text-anchor="middle" font-size="7" fill="#004060">Secure Views</text>
+
+      <rect x="868" y="100" width="168" height="36" rx="5" fill="#001424" stroke="#00b0d0" stroke-width="1"/>
+      <text x="952" y="115" text-anchor="middle" font-size="8" font-weight="700" fill="#00b0d0">GLOBAL_SALES_PRODUCT</text>
+      <text x="952" y="128" text-anchor="middle" font-size="8" fill="#006080">Domain: Sales</text>
+
+      <rect x="868" y="146" width="168" height="36" rx="5" fill="#001424" stroke="#00b0d0" stroke-width="1"/>
+      <text x="952" y="161" text-anchor="middle" font-size="8" font-weight="700" fill="#00b0d0">CUSTOMER_360_PRODUCT</text>
+      <text x="952" y="174" text-anchor="middle" font-size="8" fill="#006080">Domain: Customer</text>
+
+      <rect x="868" y="192" width="168" height="36" rx="5" fill="#001424" stroke="#00b0d0" stroke-width="1"/>
+      <text x="952" y="207" text-anchor="middle" font-size="8" font-weight="700" fill="#00b0d0">REVENUE_ANALYTICS_PRODUCT</text>
+      <text x="952" y="220" text-anchor="middle" font-size="8" fill="#006080">Domain: Finance</text>
+
+      <!-- SLO Box -->
+      <rect x="868" y="238" width="168" height="80" rx="5" fill="rgba(0,212,255,.04)" stroke="rgba(0,212,255,.2)" stroke-width="1"/>
+      <text x="952" y="254" text-anchor="middle" font-size="9" font-weight="700" fill="#00d4ff">SLO CONTRACTS</text>
+      <text x="876" y="270" font-size="8" fill="#008090">Freshness: ≤60 min</text>
+      <text x="876" y="283" font-size="8" fill="#008090">Availability: 99.5%</text>
+      <text x="876" y="296" font-size="8" fill="#008090">P95 query: ≤5s</text>
+      <text x="876" y="309" font-size="8" fill="#008090">DQ completeness: ≥99%</text>
+
+      <!-- Consumers -->
+      <rect x="868" y="328" width="168" height="50" rx="5" fill="#1a1000" stroke="#ffb340" stroke-width="1"/>
+      <text x="952" y="345" text-anchor="middle" font-size="9" font-weight="700" fill="#ffb340">CONSUMERS</text>
+      <text x="876" y="360" font-size="8" fill="#806030">Tableau · Power BI</text>
+      <text x="876" y="373" font-size="8" fill="#806030">ML Models · Cortex AI</text>
+
+      <!-- Automation -->
+      <rect x="868" y="388" width="168" height="60" rx="5" fill="#101020" stroke="#4466aa" stroke-width="1"/>
+      <text x="952" y="405" text-anchor="middle" font-size="9" font-weight="700" fill="#4466aa">AUTOMATION (Tasks)</text>
+      <text x="876" y="420" font-size="8" fill="#303060">DQ Framework: */6h</text>
+      <text x="876" y="433" font-size="8" fill="#303060">ML Features: 02:00 UTC</text>
+      <text x="876" y="446" font-size="8" fill="#303060">SLI measure: */30min</text>
+
+      <!-- RBAC -->
+      <rect x="868" y="458" width="168" height="70" rx="5" fill="#1a0010" stroke="#884466" stroke-width="1"/>
+      <text x="952" y="474" text-anchor="middle" font-size="9" font-weight="700" fill="#cc6688">RBAC ROLES</text>
+      <text x="876" y="489" font-size="8" fill="#804050">PLATFORM_ADMIN</text>
+      <text x="876" y="502" font-size="8" fill="#804050">GLOBAL_ANALYST</text>
+      <text x="876" y="515" font-size="8" fill="#804050">SAP_EUROPE_READER</text>
+      <text x="876" y="524" font-size="7" fill="#604040">JDE · QAD · ML_ENGINEER</text>
+
+      <!-- ── ARROWS Sources → Bronze ── -->
+      <line x1="160" y1="72" x2="192" y2="68" stroke="#cd7f32" stroke-width="1.5" marker-end="url(#arr)" opacity=".6"/>
+      <line x1="160" y1="134" x2="192" y2="116" stroke="#00b86a" stroke-width="1.5" marker-end="url(#arr)" opacity=".6"/>
+      <line x1="160" y1="196" x2="192" y2="164" stroke="#0080cc" stroke-width="1.5" marker-end="url(#arr)" opacity=".6"/>
+      <line x1="160" y1="258" x2="192" y2="212" stroke="#8844dd" stroke-width="1.5" marker-end="url(#arr)" opacity=".6"/>
+      <line x1="160" y1="320" x2="192" y2="260" stroke="#ff8c00" stroke-width="1.5" marker-end="url(#arr)" opacity=".6"/>
+
+      <!-- ── Bronze → Silver (Streams) ── -->
+      <line x1="372" y1="115" x2="404" y2="115" stroke="#aab8c2" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+      <line x1="372" y1="165" x2="404" y2="190" stroke="#aab8c2" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+      <line x1="372" y1="215" x2="404" y2="240" stroke="#aab8c2" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+      <text x="388" y="155" font-size="8" fill="#aab8c2" opacity=".5">Streams</text>
+      <text x="385" y="167" font-size="8" fill="#aab8c2" opacity=".5">5-min lag</text>
+
+      <!-- ── Silver → Gold ── -->
+      <line x1="604" y1="80" x2="636" y2="72" stroke="#ffd700" stroke-width="1.5" marker-end="url(#arrGold)" opacity=".7"/>
+      <line x1="604" y1="130" x2="636" y2="120" stroke="#ffd700" stroke-width="1.5" marker-end="url(#arrGold)" opacity=".7"/>
+      <line x1="604" y1="200" x2="636" y2="180" stroke="#00e5a0" stroke-width="1.5" marker-end="url(#arrGold)" opacity=".7"/>
+      <text x="610" y="145" font-size="8" fill="#ffd700" opacity=".5">15-min</text>
+      <text x="612" y="155" font-size="8" fill="#ffd700" opacity=".5">DT lag</text>
+
+      <!-- ── Gold → Products ── -->
+      <line x1="826" y1="70" x2="868" y2="68" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+      <line x1="826" y1="120" x2="868" y2="118" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+      <line x1="826" y1="170" x2="868" y2="164" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr)" opacity=".7"/>
+
+      <!-- Config to Silver -->
+      <line x1="160" y1="466" x2="404" y2="380" stroke="#4466aa" stroke-width="1" stroke-dasharray="3,2" opacity=".5"/>
+      <text x="240" y="420" font-size="7" fill="#4466aa" opacity=".6">FX rates</text>
+
+      <!-- Legend -->
+      <rect x="10" y="590" width="160" height="122" rx="6" fill="rgba(0,0,0,.5)" stroke="rgba(30,50,72,.8)" stroke-width="1"/>
+      <text x="90" y="608" text-anchor="middle" font-size="9" font-weight="700" fill="#7a9ab5">LEGEND</text>
+      <rect x="20" y="616" width="8" height="8" rx="1" fill="#cd7f32"/>
+      <text x="32" y="624" font-size="8" fill="#a06030">Bronze layer (raw ingest)</text>
+      <rect x="20" y="632" width="8" height="8" rx="1" fill="#aab8c2"/>
+      <text x="32" y="640" font-size="8" fill="#708090">Silver layer (curated 3NF)</text>
+      <rect x="20" y="648" width="8" height="8" rx="1" fill="#ffd700"/>
+      <text x="32" y="656" font-size="8" fill="#806020">Gold layer (analytics)</text>
+      <rect x="20" y="664" width="8" height="8" rx="1" fill="#00d4ff"/>
+      <text x="32" y="672" font-size="8" fill="#008090">Data products</text>
+      <line x1="20" y1="682" x2="40" y2="682" stroke="#aab8c2" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <text x="44" y="686" font-size="8" fill="#708090">Stream / Dynamic Table</text>
+      <line x1="20" y1="696" x2="40" y2="696" stroke="#4466aa" stroke-width="1.5" stroke-dasharray="2,2"/>
+      <text x="44" y="700" font-size="8" fill="#4466aa">Config reference</text>
+    </svg>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Warehouse overview -->
+  <div class="section-title" style="margin-top:8px">Compute Warehouses <div class="line"></div></div>
+  <div class="section-sub">Right-sized per workload type · All AUTO_RESUME + AUTO_SUSPEND</div>
+  <div class="wh-grid">
+    <div class="wh-card">
+      <div class="wh-name">INGEST_WH</div>
+      <div class="wh-size">XSmall</div>
+      <div class="wh-detail">Suspend: <span>60s</span></div>
+      <div class="wh-detail">Purpose: <span>Snowpipe + lightweight DQ Tasks</span></div>
+      <div style="margin-top:8px"><span class="tag tag-cyan">Snowpipe</span><span class="tag tag-amber">Tasks</span></div>
+    </div>
+    <div class="wh-card">
+      <div class="wh-name">TRANSFORM_WH</div>
+      <div class="wh-size">Small</div>
+      <div class="wh-detail">Suspend: <span>60s</span></div>
+      <div class="wh-detail">Purpose: <span>Silver/Gold Dynamic Tables, incremental ETL</span></div>
+      <div style="margin-top:8px"><span class="tag tag-silver">Dynamic Tables</span><span class="tag tag-cyan">dbt</span></div>
+    </div>
+    <div class="wh-card">
+      <div class="wh-name">ANALYTICS_WH</div>
+      <div class="wh-size">Medium</div>
+      <div class="wh-detail">Clusters: <span>1–3 (ECONOMY)</span></div>
+      <div class="wh-detail">Suspend: <span>300s</span></div>
+      <div class="wh-detail">Resource Monitor: <span>VERTIV_DEMO_GUARD</span></div>
+      <div style="margin-top:8px"><span class="tag tag-amber">Tableau</span><span class="tag tag-amber">Power BI</span></div>
+    </div>
+    <div class="wh-card">
+      <div class="wh-name">ML_WH</div>
+      <div class="wh-size">Large</div>
+      <div class="wh-detail">Suspend: <span>60s (expensive!)</span></div>
+      <div class="wh-detail">Resource Monitor: <span>VERTIV_DEMO_GUARD</span></div>
+      <div class="wh-detail">Purpose: <span>Snowpark Python · scikit-learn</span></div>
+      <div style="margin-top:8px"><span class="tag tag-green">Snowpark</span><span class="tag tag-purple">ML</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════ BRONZE ════════════════════════ -->
+<div id="tab-bronze" class="content">
+  <div class="section-title">🥉 Bronze Layer — VERTIV_RAW <div class="line"></div></div>
+  <div class="section-sub">Raw ingestion from SAP (Europe) · JDE (Americas) · QAD (EMEA) · Salesforce (Global) · Kafka · Data Retention: 7 days</div>
+
+  <!-- SAP -->
+  <div class="layer-card" style="margin-bottom:20px">
+    <div class="layer-header" style="border-left:4px solid #cd7f32">
+      <div class="layer-icon">🏭</div>
+      <div>
+        <div class="layer-title" style="color:#cd7f32">SAP S/4HANA — EUROPE (Schema: SAP_EUROPE)</div>
+        <div class="layer-desc">Source: VBAK (orders) · VBAP (items) · KNA1 (customers) · Ingest: Snowpipe CSV</div>
+      </div>
+    </div>
+    <div class="layer-body">
+      <div class="schema-grid">
+        <!-- SALES_ORDERS -->
+        <div class="schema-card">
+          <div class="schema-card-header">
+            <span class="tname">SALES_ORDERS</span>
+            <span class="source-badge">VBAK</span>
+          </div>
+          <table class="schema-table">
+            <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+            <tr><td><span class="col-name">ORDER_ID</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">VBELN</td></tr>
+            <tr><td class="col-name">ORDER_TYPE</td><td><span class="col-type">VARCHAR(10)</span></td><td class="col-desc">AUART: TA/KA/RE</td></tr>
+            <tr><td class="col-name">ORDER_DATE</td><td><span class="col-type">DATE</span></td><td class="col-desc">AUDAT</td></tr>
+            <tr><td class="col-name">DELIVERY_DATE</td><td><span class="col-type">DATE</span></td><td class="col-desc">EDATU</td></tr>
+            <tr><td class="col-name">CUSTOMER_ID</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">KUNNR sold-to</td></tr>
+            <tr><td class="col-name">SALES_ORG</td><td><span class="col-type">VARCHAR(10)</span></td><td class="col-desc">VKORG</td></tr>
+            <tr><td class="col-name">ORDER_STATUS</td><td><span class="col-type">VARCHAR(30)</span></td><td class="col-desc">GBSTA</td></tr>
+            <tr><td class="col-name">CURRENCY_CODE</td><td><span class="col-type">VARCHAR(3)</span></td><td class="col-desc">WAERK</td></tr>
+            <tr><td class="col-name">NET_AMOUNT</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">NETWR</td></tr>
+            <tr><td class="col-name">TAX_AMOUNT</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">MWSBP</td></tr>
+            <tr><td class="col-name">DISCOUNT_PCT</td><td><span class="col-type">NUMBER(5,2)</span></td><td class="col-desc"></td></tr>
+            <tr><td class="col-name">SOURCE_SYSTEM</td><td><span class="col-type">VARCHAR(20)</span></td><td class="col-desc meta-badge">META DEFAULT 'SAP'</td></tr>
+            <tr><td class="col-name">LOAD_ID</td><td><span class="col-type">VARCHAR(36)</span></td><td class="col-desc meta-badge">UUID auto</td></tr>
+            <tr><td class="col-name">LOAD_TIMESTAMP</td><td><span class="col-type">TIMESTAMP_NTZ</span></td><td class="col-desc meta-badge">META</td></tr>
+            <tr><td class="col-name">BATCH_ID</td><td><span class="col-type">VARCHAR(36)</span></td><td class="col-desc meta-badge">META</td></tr>
+            <tr><td class="col-name">CHANGE_TYPE</td><td><span class="col-type">VARCHAR(10)</span></td><td class="col-desc meta-badge">INSERT|UPDATE|DELETE</td></tr>
+            <tr><td class="col-name">RAW_RECORD</td><td><span class="col-type">VARIANT</span></td><td class="col-desc">Full JSON forensic</td></tr>
+          </table>
+          <div style="padding:8px 14px"><span class="tag tag-cyan">CLUSTER BY (LOAD_DATE, ORDER_DATE)</span><span class="tag tag-amber">Stream → Silver</span></div>
+        </div>
+        <!-- ORDER_ITEMS -->
+        <div class="schema-card">
+          <div class="schema-card-header">
+            <span class="tname">ORDER_ITEMS</span>
+            <span class="source-badge">VBAP</span>
+          </div>
+          <table class="schema-table">
+            <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+            <tr><td><span class="col-name">ORDER_ID</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">VBELN</td></tr>
+            <tr><td><span class="col-name">LINE_ITEM</span><span class="pk-badge">PK</span></td><td><span class="col-type">NUMBER</span></td><td class="col-desc">POSNR</td></tr>
+            <tr><td class="col-name">PRODUCT_CODE</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">MATNR</td></tr>
+            <tr><td class="col-name">PRODUCT_DESC</td><td><span class="col-type">VARCHAR(500)</span></td><td class="col-desc">ARKTX</td></tr>
+            <tr><td class="col-name">QUANTITY</td><td><span class="col-type">NUMBER(15,3)</span></td><td class="col-desc">KWMENG</td></tr>
+            <tr><td class="col-name">UNIT_PRICE</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">NETPR</td></tr>
+            <tr><td class="col-name">LINE_AMOUNT</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">NETWR</td></tr>
+            <tr><td class="col-name">PLANT</td><td><span class="col-type">VARCHAR(10)</span></td><td class="col-desc">WERKS</td></tr>
+            <tr><td class="col-name">ITEM_STATUS</td><td><span class="col-type">VARCHAR(30)</span></td><td class="col-desc"></td></tr>
+            <tr><td class="col-name">RAW_RECORD</td><td><span class="col-type">VARIANT</span></td><td class="col-desc">Full JSON</td></tr>
+          </table>
+          <div style="padding:8px 14px"><span class="tag tag-cyan">CLUSTER BY (LOAD_DATE, ORDER_ID)</span></div>
+        </div>
+        <!-- CUSTOMERS SAP -->
+        <div class="schema-card">
+          <div class="schema-card-header">
+            <span class="tname">CUSTOMERS</span>
+            <span class="source-badge">KNA1</span>
+          </div>
+          <table class="schema-table">
+            <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+            <tr><td><span class="col-name">CUSTOMER_ID</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">KUNNR</td></tr>
+            <tr><td class="col-name">CUSTOMER_NAME</td><td><span class="col-type">VARCHAR(500)</span></td><td class="col-desc">NAME1</td></tr>
+            <tr><td class="col-name">COUNTRY_CODE</td><td><span class="col-type">VARCHAR(3)</span></td><td class="col-desc">LAND1</td></tr>
+            <tr><td class="col-name">CITY</td><td><span class="col-type">VARCHAR(200)</span></td><td class="col-desc">ORT01</td></tr>
+            <tr><td class="col-name">POSTAL_CODE</td><td><span class="col-type">VARCHAR(20)</span></td><td class="col-desc">PSTLZ</td></tr>
+            <tr><td><span class="col-name">PHONE</span><span class="pii-badge">PII</span></td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">TELF1</td></tr>
+            <tr><td><span class="col-name">EMAIL</span><span class="pii-badge">PII</span></td><td><span class="col-type">VARCHAR(200)</span></td><td class="col-desc">SMTP_ADDR</td></tr>
+            <tr><td><span class="col-name">TAX_NUMBER</span><span class="pii-badge">SENSITIVE</span></td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">STCD1</td></tr>
+            <tr><td class="col-name">CREDIT_LIMIT</td><td><span class="col-type">NUMBER(18,2)</span></td><td class="col-desc">KLIMK</td></tr>
+            <tr><td class="col-name">INDUSTRY_CODE</td><td><span class="col-type">VARCHAR(10)</span></td><td class="col-desc"></td></tr>
+          </table>
+          <div style="padding:8px 14px"><span class="tag tag-red">CONTAINS PII</span><span class="tag tag-cyan">CLUSTER BY (LOAD_DATE)</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JDE -->
+  <div class="layer-card" style="margin-bottom:20px">
+    <div class="layer-header" style="border-left:4px solid #00b86a">
+      <div class="layer-icon">🌎</div>
+      <div>
+        <div class="layer-title" style="color:#00b86a">JDE E1 — AMERICAS (Schema: JDE_AMERICAS)</div>
+        <div class="layer-desc">Source: F4211 (sales detail) · F0101 (address book) · Julian date conversion</div>
+      </div>
+    </div>
+    <div class="layer-body">
+      <div class="schema-grid">
+        <div class="schema-card">
+          <div class="schema-card-header"><span class="tname">SALES_ORDERS</span><span class="source-badge">F4211</span></div>
+          <table class="schema-table">
+            <tr><th>Column</th><th>Type</th><th>JDE Field</th></tr>
+            <tr><td><span class="col-name">ORDER_ID</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">SDDOCO</td></tr>
+            <tr><td class="col-name">ORDER_TYPE</td><td><span class="col-type">VARCHAR(10)</span></td><td class="col-desc">SDDCTO</td></tr>
+            <tr><td class="col-name">ORDER_DATE</td><td><span class="col-type">DATE</span></td><td class="col-desc">SDRQAJ (Julian)</td></tr>
+            <tr><td class="col-name">CUSTOMER_ID</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">SDAN8 (Addr Bk)</td></tr>
+            <tr><td class="col-name">BRANCH_PLANT</td><td><span class="col-type">VARCHAR(20)</span></td><td class="col-desc">SDMCU</td></tr>
+            <tr><td class="col-name">QUANTITY_ORDERED</td><td><span class="col-type">NUMBER(15,3)</span></td><td class="col-desc">SDUORG</td></tr>
+            <tr><td class="col-name">QUANTITY_SHIPPED</td><td><span class="col-type">NUMBER(15,3)</span></td><td class="col-desc">SDSOQS</td></tr>
+            <tr><td class="col-name">UNIT_PRICE</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">SDUPRC</td></tr>
+            <tr><td class="col-name">EXTENDED_PRICE</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">SDAEXP</td></tr>
+            <tr><td class="col-name">CURRENCY_CODE</td><td><span class="col-type">VARCHAR(3)</span></td><td class="col-desc">SDCRCD</td></tr>
+          </table>
+        </div>
+        <div class="schema-card">
+          <div class="schema-card-header"><span class="tname">CUSTOMERS</span><span class="source-badge">F0101</span></div>
+          <table class="schema-table">
+            <tr><th>Column</th><th>Type</th><th>JDE Field</th></tr>
+            <tr><td><span class="col-name">CUSTOMER_ID</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">AN8</td></tr>
+            <tr><td class="col-name">CUSTOMER_NAME</td><td><span class="col-type">VARCHAR(500)</span></td><td class="col-desc">ALPH</td></tr>
+            <tr><td><span class="col-name">ADDRESS_LINE_1</span><span class="pii-badge">PII</span></td><td><span class="col-type">VARCHAR(200)</span></td><td class="col-desc">ADD1</td></tr>
+            <tr><td class="col-name">STATE_CODE</td><td><span class="col-type">VARCHAR(10)</span></td><td class="col-desc">ADDS</td></tr>
+            <tr><td class="col-name">COUNTRY_CODE</td><td><span class="col-type">VARCHAR(3)</span></td><td class="col-desc">CTR</td></tr>
+            <tr><td><span class="col-name">PHONE</span><span class="pii-badge">PII</span></td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">PH</td></tr>
+            <tr><td><span class="col-name">TAX_ID</span><span class="pii-badge">SENSITIVE</span></td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">TAX</td></tr>
+            <tr><td class="col-name">CREDIT_LIMIT</td><td><span class="col-type">NUMBER(18,2)</span></td><td class="col-desc">ACL</td></tr>
+            <tr><td class="col-name">PAYMENT_TERMS</td><td><span class="col-type">VARCHAR(10)</span></td><td class="col-desc">PTC</td></tr>
+          </table>
+          <div style="padding:8px 14px"><span class="tag tag-red">CONTAINS PII</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QAD + Salesforce + Kafka -->
+  <div class="schema-grid">
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">QAD_EMEA.SALES_ORDERS</span><span class="source-badge">so_mstr</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>QAD Field</th></tr>
+        <tr><td><span class="col-name">ORDER_ID</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">so_nbr</td></tr>
+        <tr><td class="col-name">ORDER_DATE</td><td><span class="col-type">DATE</span></td><td class="col-desc">so_ord_date</td></tr>
+        <tr><td class="col-name">CUSTOMER_ID</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">so_cust_id</td></tr>
+        <tr><td class="col-name">SITE</td><td><span class="col-type">VARCHAR(20)</span></td><td class="col-desc">so_site</td></tr>
+        <tr><td class="col-name">ORDER_STATUS</td><td><span class="col-type">VARCHAR(30)</span></td><td class="col-desc">so_status</td></tr>
+        <tr><td class="col-name">CURRENCY_CODE</td><td><span class="col-type">VARCHAR(3)</span></td><td class="col-desc">so_curr</td></tr>
+        <tr><td class="col-name">TOTAL_AMOUNT</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">so_total</td></tr>
+        <tr><td class="col-name">DISCOUNT_PCT</td><td><span class="col-type">NUMBER(5,2)</span></td><td class="col-desc">so_disc_pct</td></tr>
+      </table>
+    </div>
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">SALESFORCE_GLOBAL.OPPORTUNITIES</span><span class="source-badge">SFDC</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>SFDC Field</th></tr>
+        <tr><td><span class="col-name">OPP_ID</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">Id (18-char)</td></tr>
+        <tr><td class="col-name">OPP_NAME</td><td><span class="col-type">VARCHAR(500)</span></td><td class="col-desc">Name</td></tr>
+        <tr><td class="col-name">ACCOUNT_ID</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">AccountId</td></tr>
+        <tr><td class="col-name">STAGE_NAME</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">StageName</td></tr>
+        <tr><td class="col-name">AMOUNT</td><td><span class="col-type">NUMBER(18,2)</span></td><td class="col-desc">Amount</td></tr>
+        <tr><td class="col-name">PROBABILITY</td><td><span class="col-type">NUMBER(5,2)</span></td><td class="col-desc">Probability</td></tr>
+        <tr><td class="col-name">CLOSE_DATE</td><td><span class="col-type">DATE</span></td><td class="col-desc">CloseDate</td></tr>
+        <tr><td class="col-name">IS_WON</td><td><span class="col-type">BOOLEAN</span></td><td class="col-desc">IsWon</td></tr>
+        <tr><td class="col-name">LEAD_SOURCE</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">LeadSource</td></tr>
+      </table>
+    </div>
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">REALTIME.ORDER_EVENTS</span><span class="source-badge">Kafka</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">EVENT_ID</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(36)</span></td><td class="col-desc">UUID</td></tr>
+        <tr><td class="col-name">KAFKA_TOPIC</td><td><span class="col-type">VARCHAR(200)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">KAFKA_PARTITION</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">KAFKA_OFFSET</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">EVENT_TIMESTAMP</td><td><span class="col-type">TIMESTAMP_NTZ</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">EVENT_TYPE</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">CREATED|UPDATED|SHIPPED|CANCELLED</td></tr>
+        <tr><td class="col-name">EVENT_PAYLOAD</td><td><span class="col-type">VARIANT</span></td><td class="col-desc">Schema-on-read full JSON</td></tr>
+      </table>
+      <div style="padding:8px 14px"><span class="tag tag-amber">Snowpipe Streaming</span><span class="tag tag-cyan">CLUSTER BY DATE(EVENT_TS)</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ SILVER ════════════════════════ -->
+<div id="tab-silver" class="content">
+  <div class="section-title">🥈 Silver Layer — VERTIV_CURATED <div class="line"></div></div>
+  <div class="section-sub">3NF normalized · SHA256 hash keys · Insert-only SCD Type 2 · DQ scoring · Data Retention: 30 days</div>
+
+  <div class="perf-grid" style="margin-bottom:24px">
+    <div class="perf-card">
+      <div class="perf-card-title">Hash Key Strategy</div>
+      <div class="perf-item"><span class="bullet">▸</span><div>CUSTOMER_HK = <span class="val"><span>SHA256('SAP|CUST-001')</span></span> — 64-char hex</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div>Cross-system unique: <span class="val">SAP|ID ≠ JDE|ID</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div>HASH_DIFF detects row changes <span class="val">without column compare</span></div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">Versioning (SCD2)</div>
+      <div class="perf-item"><span class="bullet">▸</span><div>Insert-only: EFFECTIVE_FROM / EFFECTIVE_TO</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div>IS_CURRENT = TRUE for latest</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div>EFFECTIVE_TO default: <span class="val">9999-12-31</span></div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">Data Quality</div>
+      <div class="perf-item"><span class="bullet">▸</span><div>DQ_COMPLETENESS_SCORE: <span class="val">5 fields × 20pts</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div>IS_QUARANTINED flag on failing records</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div>DQ_FLAGS array of rule violations</div></div>
+    </div>
+  </div>
+
+  <div class="schema-grid">
+    <!-- CUSTOMER -->
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">SALES.CUSTOMER</span><span class="source-badge">3NF · SCD2</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">CUSTOMER_HK</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">SHA256(src|id)</td></tr>
+        <tr><td class="col-name">SOURCE_SYSTEM</td><td><span class="col-type">VARCHAR(20)</span></td><td class="col-desc">SAP|JDE|QAD|SFDC</td></tr>
+        <tr><td class="col-name">SOURCE_REGION</td><td><span class="col-type">VARCHAR(30)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">ORIGINAL_ID</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">Bronze PK as-is</td></tr>
+        <tr><td class="col-name">CUSTOMER_NAME</td><td><span class="col-type">VARCHAR(500)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">INDUSTRY_CODE</td><td><span class="col-type">VARCHAR(20)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">COUNTRY_CODE</td><td><span class="col-type">VARCHAR(3)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">CREDIT_LIMIT_USD</td><td><span class="col-type">NUMBER(18,2)</span></td><td class="col-desc">FX normalized</td></tr>
+        <tr><td class="col-name">DQ_COMPLETENESS_SCORE</td><td><span class="col-type">NUMBER(5,2)</span></td><td class="col-desc">0-100</td></tr>
+        <tr><td class="col-name">DQ_FLAGS</td><td><span class="col-type">ARRAY</span></td><td class="col-desc">Failed rule names</td></tr>
+        <tr><td class="col-name">IS_QUARANTINED</td><td><span class="col-type">BOOLEAN</span></td><td class="col-desc"></td></tr>
+        <tr><td><span class="col-name">EFFECTIVE_FROM</span><span class="pk-badge">PK</span></td><td><span class="col-type">TIMESTAMP_NTZ</span></td><td class="col-desc">SCD2 start</td></tr>
+        <tr><td class="col-name">EFFECTIVE_TO</td><td><span class="col-type">TIMESTAMP_NTZ</span></td><td class="col-desc">9999-12-31 if current</td></tr>
+        <tr><td class="col-name">IS_CURRENT</td><td><span class="col-type">BOOLEAN</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">HASH_DIFF</td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">Change detection</td></tr>
+      </table>
+      <div style="padding:8px 14px"><span class="tag tag-cyan">CLUSTER BY (CUSTOMER_HK)</span></div>
+    </div>
+    <!-- PRODUCT -->
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">SALES.PRODUCT</span><span class="source-badge">3NF · SCD2</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">PRODUCT_HK</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">SHA256(src|code)</td></tr>
+        <tr><td class="col-name">ORIGINAL_ID</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">Bronze product code</td></tr>
+        <tr><td class="col-name">PRODUCT_CODE</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">PRODUCT_NAME</td><td><span class="col-type">VARCHAR(500)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">PRODUCT_FAMILY</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">UPS|COOLING|PDU|RACK|MON|SVC</td></tr>
+        <tr><td class="col-name">PRODUCT_LINE</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">Liebert GXT5/DSE/EXM…</td></tr>
+        <tr><td class="col-name">UNIT_OF_MEASURE</td><td><span class="col-type">VARCHAR(20)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">STANDARD_COST_USD</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">LIST_PRICE_USD</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">IS_DISCONTINUED</td><td><span class="col-type">BOOLEAN</span></td><td class="col-desc"></td></tr>
+        <tr><td><span class="col-name">EFFECTIVE_FROM</span><span class="pk-badge">PK</span></td><td><span class="col-type">TIMESTAMP_NTZ</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">HASH_DIFF</td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc"></td></tr>
+      </table>
+    </div>
+    <!-- SALES_ORDER -->
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">SALES.SALES_ORDER</span><span class="source-badge">3NF · SCD2</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">ORDER_HK</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">SHA256(src|order_id)</td></tr>
+        <tr><td><span class="col-name">CUSTOMER_HK</span><span class="fk-badge">FK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">→ CUSTOMER</td></tr>
+        <tr><td><span class="col-name">SALESPERSON_HK</span><span class="fk-badge">FK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">→ (future)</td></tr>
+        <tr><td class="col-name">ORIGINAL_ID</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">Bronze ORDER_ID</td></tr>
+        <tr><td class="col-name">ORDER_DATE</td><td><span class="col-type">DATE</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">ORDER_TYPE</td><td><span class="col-type">VARCHAR(30)</span></td><td class="col-desc">Normalized from SAP/JDE/QAD</td></tr>
+        <tr><td class="col-name">ORDER_STATUS</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">CURRENCY_CODE</td><td><span class="col-type">VARCHAR(3)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">NET_AMOUNT_ORIG</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">Source currency</td></tr>
+        <tr><td class="col-name">NET_AMOUNT_USD</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">× FX_TO_USD lookup</td></tr>
+        <tr><td class="col-name">TAX_AMOUNT_USD</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">FX normalized</td></tr>
+        <tr><td class="col-name">DISCOUNT_PCT</td><td><span class="col-type">NUMBER(5,2)</span></td><td class="col-desc">COALESCE → 0</td></tr>
+        <tr><td class="col-name">IS_QUARANTINED</td><td><span class="col-type">BOOLEAN</span></td><td class="col-desc">ORDER_ID IS NULL</td></tr>
+        <tr><td class="col-name">HASH_DIFF</td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc"></td></tr>
+      </table>
+      <div style="padding:8px 14px"><span class="tag tag-cyan">CLUSTER BY (CUSTOMER_HK, ORDER_DATE)</span></div>
+    </div>
+    <!-- ORDER_LINE -->
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">SALES.ORDER_LINE</span><span class="source-badge">3NF</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">LINE_HK</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">SHA256(src|order|line)</td></tr>
+        <tr><td><span class="col-name">ORDER_HK</span><span class="fk-badge">FK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">→ SALES_ORDER</td></tr>
+        <tr><td><span class="col-name">PRODUCT_HK</span><span class="fk-badge">FK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">→ PRODUCT</td></tr>
+        <tr><td class="col-name">LINE_NUMBER</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">QUANTITY</td><td><span class="col-type">NUMBER(15,3)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">UNIT_PRICE_ORIG</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">Source currency</td></tr>
+        <tr><td class="col-name">UNIT_PRICE_USD</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">FX normalized</td></tr>
+        <tr><td class="col-name">LINE_AMOUNT_USD</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">LINE_STATUS</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc"></td></tr>
+      </table>
+      <div style="padding:8px 14px"><span class="tag tag-cyan">CLUSTER BY (ORDER_HK)</span></div>
+    </div>
+    <!-- OPPORTUNITY -->
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">SALES.OPPORTUNITY</span><span class="source-badge">Salesforce</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">OPP_HK</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">SHA256(SFDC|opp_id)</td></tr>
+        <tr><td><span class="col-name">CUSTOMER_HK</span><span class="fk-badge">FK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">MDM-matched</td></tr>
+        <tr><td class="col-name">OPP_NAME</td><td><span class="col-type">VARCHAR(500)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">STAGE_NAME</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">AMOUNT_USD</td><td><span class="col-type">NUMBER(18,2)</span></td><td class="col-desc">SFDC USD direct</td></tr>
+        <tr><td class="col-name">PROBABILITY</td><td><span class="col-type">NUMBER(5,2)</span></td><td class="col-desc">0-100</td></tr>
+        <tr><td class="col-name">CLOSE_DATE</td><td><span class="col-type">DATE</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">IS_WON</td><td><span class="col-type">BOOLEAN</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">IS_CLOSED</td><td><span class="col-type">BOOLEAN</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">REGION</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc"></td></tr>
+      </table>
+      <div style="padding:8px 14px"><span class="tag tag-cyan">CLUSTER BY (OPP_HK, CLOSE_DATE)</span></div>
+    </div>
+    <!-- DQ Tables -->
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">VERTIV_AUDIT.DQ.DQ_BATCH_LOG</span><span class="source-badge">Audit</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td class="col-name">BATCH_ID</td><td><span class="col-type">VARCHAR(36)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">DAMA_DIMENSION</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">Completeness/Validity…</td></tr>
+        <tr><td class="col-name">RULE_NAME</td><td><span class="col-type">VARCHAR(200)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">RECORDS_CHECKED</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">RECORDS_FAILED</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">PASS_RATE</td><td><span class="col-type">NUMBER(5,2)</span></td><td class="col-desc">(passed/checked)×100</td></tr>
+        <tr><td class="col-name">RECORDS_QUARANTINED</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">RUN_TIMESTAMP</td><td><span class="col-type">TIMESTAMP_NTZ</span></td><td class="col-desc"></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ GOLD ════════════════════════ -->
+<div id="tab-gold" class="content">
+  <div class="section-title">🥇 Gold Layer — VERTIV_ANALYTICS <div class="line"></div></div>
+  <div class="section-sub">BI Star Schema · ML Feature Store · AI Vector Embeddings · Data Retention: 90 days</div>
+
+  <div style="font-size:13px; font-weight:700; color:var(--gold); margin-bottom:14px; font-family:var(--font-mono)">── BI SCHEMA (VERTIV_ANALYTICS.BI)</div>
+  <div class="schema-grid">
+    <!-- DIM_DATE -->
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">DIM_DATE</span><span class="source-badge">5,479 rows</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">DATE_KEY</span><span class="pk-badge">PK</span></td><td><span class="col-type">NUMBER</span></td><td class="col-desc">YYYYMMDD integer</td></tr>
+        <tr><td class="col-name">CALENDAR_DATE</td><td><span class="col-type">DATE</span></td><td class="col-desc">UNIQUE</td></tr>
+        <tr><td class="col-name">DAY_NAME</td><td><span class="col-type">VARCHAR(20)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">WEEK_OF_YEAR</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">MONTH_NUMBER</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">MONTH_NAME</td><td><span class="col-type">VARCHAR(20)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">QUARTER_NAME</td><td><span class="col-type">VARCHAR(6)</span></td><td class="col-desc">Q1/Q2/Q3/Q4</td></tr>
+        <tr><td class="col-name">YEAR_NUMBER</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">IS_WEEKEND</td><td><span class="col-type">BOOLEAN</span></td><td class="col-desc">DOW IN (0,6)</td></tr>
+        <tr><td class="col-name">FISCAL_QUARTER</td><td><span class="col-type">NUMBER</span></td><td class="col-desc">Vertiv fiscal cal</td></tr>
+      </table>
+      <div style="padding:8px 14px"><span class="tag tag-green">Static 2015–2030</span></div>
+    </div>
+    <!-- DIM_CUSTOMER -->
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">DIM_CUSTOMER</span><span class="source-badge">MDM unified</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">CUSTOMER_SK</span><span class="pk-badge">PK</span></td><td><span class="col-type">AUTOINCREMENT</span></td><td class="col-desc">Surrogate key</td></tr>
+        <tr><td class="col-name">MASTER_CUSTOMER_HK</td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">MDM golden record</td></tr>
+        <tr><td><span class="col-name">SAP_CUSTOMER_HK</span><span class="fk-badge">FK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">→ Silver</td></tr>
+        <tr><td><span class="col-name">JDE_CUSTOMER_HK</span><span class="fk-badge">FK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">→ Silver</td></tr>
+        <tr><td><span class="col-name">QAD_CUSTOMER_HK</span><span class="fk-badge">FK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">→ Silver</td></tr>
+        <tr><td class="col-name">CUSTOMER_NAME</td><td><span class="col-type">VARCHAR(500)</span></td><td class="col-desc">Best-source-wins</td></tr>
+        <tr><td class="col-name">INDUSTRY</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">Conformed</td></tr>
+        <tr><td class="col-name">SEGMENT</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">ENTERPRISE|MID_MKT|SMB</td></tr>
+        <tr><td class="col-name">IS_KEY_ACCOUNT</td><td><span class="col-type">BOOLEAN</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">EFFECTIVE_FROM</td><td><span class="col-type">DATE</span></td><td class="col-desc">SCD2</td></tr>
+        <tr><td class="col-name">IS_CURRENT</td><td><span class="col-type">BOOLEAN</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">DW_VERSION</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+      </table>
+      <div style="padding:8px 14px"><span class="tag tag-purple">Search Optimization: NAME, COUNTRY, HK</span></div>
+    </div>
+    <!-- DIM_PRODUCT -->
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">DIM_PRODUCT</span><span class="source-badge">11 products</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">PRODUCT_SK</span><span class="pk-badge">PK</span></td><td><span class="col-type">AUTOINCREMENT</span></td><td class="col-desc"></td></tr>
+        <tr><td><span class="col-name">PRODUCT_HK</span><span class="fk-badge">FK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">→ Silver PRODUCT</td></tr>
+        <tr><td class="col-name">PRODUCT_CODE</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">UPS-GXT5-10K…</td></tr>
+        <tr><td class="col-name">PRODUCT_NAME</td><td><span class="col-type">VARCHAR(500)</span></td><td class="col-desc">Liebert GXT5 10kVA…</td></tr>
+        <tr><td class="col-name">PRODUCT_FAMILY</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">UPS|COOLING|PDU|RACK|MON|SVC</td></tr>
+        <tr><td class="col-name">PRODUCT_LINE</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">Liebert GXT5 / EXM…</td></tr>
+        <tr><td class="col-name">LIST_PRICE_USD</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">IS_DISCONTINUED</td><td><span class="col-type">BOOLEAN</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">EFFECTIVE_FROM / TO</td><td><span class="col-type">DATE</span></td><td class="col-desc">SCD2</td></tr>
+      </table>
+      <div style="padding:8px 14px"><span class="tag tag-purple">Search Optimization: CODE, NAME, FAMILY</span></div>
+    </div>
+    <!-- FACT -->
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">FACT_SALES_ORDERS</span><span class="source-badge">Dynamic Table 15min</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">ORDER_HK</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">From Silver</td></tr>
+        <tr><td><span class="col-name">CUSTOMER_HK</span><span class="fk-badge">FK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc">→ DIM_CUSTOMER</td></tr>
+        <tr><td><span class="col-name">DATE_KEY</span><span class="fk-badge">FK</span></td><td><span class="col-type">NUMBER</span></td><td class="col-desc">→ DIM_DATE</td></tr>
+        <tr><td><span class="col-name">REGION_SK</span><span class="fk-badge">FK</span></td><td><span class="col-type">NUMBER</span></td><td class="col-desc">→ DIM_REGION</td></tr>
+        <tr><td><span class="col-name">PRODUCT_SK</span><span class="fk-badge">FK</span></td><td><span class="col-type">NUMBER</span></td><td class="col-desc">→ DIM_PRODUCT</td></tr>
+        <tr><td class="col-name">ORDER_DATE</td><td><span class="col-type">DATE</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">ORDER_TYPE</td><td><span class="col-type">VARCHAR(30)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">NET_AMOUNT_USD</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">TAX_AMOUNT_USD</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">TOTAL_AMOUNT_USD</td><td><span class="col-type">NUMBER(18,4)</span></td><td class="col-desc">NET + TAX</td></tr>
+        <tr><td class="col-name">DISCOUNT_PCT</td><td><span class="col-type">NUMBER(5,2)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">SOURCE_SYSTEM</td><td><span class="col-type">VARCHAR(20)</span></td><td class="col-desc">SAP|JDE|QAD</td></tr>
+      </table>
+      <div style="padding:8px 14px"><span class="tag tag-green">IS_CURRENT=TRUE AND NOT IS_QUARANTINED</span></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div style="font-size:13px; font-weight:700; color:var(--green); margin-bottom:14px; font-family:var(--font-mono)">── ML FEATURE STORE (VERTIV_ANALYTICS.ML_FEATURES)</div>
+  <div class="schema-grid">
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">CUSTOMER_REVENUE_FEATURES</span><span class="source-badge">PIT correct</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">CUSTOMER_HK</span><span class="pk-badge">UK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc"></td></tr>
+        <tr><td><span class="col-name">AS_OF_DATE</span><span class="pk-badge">UK</span></td><td><span class="col-type">DATE</span></td><td class="col-desc">Strict PIT snapshot</td></tr>
+        <tr><td class="col-name">FEATURE_VERSION</td><td><span class="col-type">NUMBER</span></td><td class="col-desc">Logic version</td></tr>
+        <tr><td class="col-name">REV_L7D_USD</td><td><span class="col-type">NUMBER(18,2)</span></td><td class="col-desc">Last 7 days</td></tr>
+        <tr><td class="col-name">REV_L30D_USD</td><td><span class="col-type">NUMBER(18,2)</span></td><td class="col-desc">Last 30 days</td></tr>
+        <tr><td class="col-name">REV_L90D_USD</td><td><span class="col-type">NUMBER(18,2)</span></td><td class="col-desc">Last 90 days</td></tr>
+        <tr><td class="col-name">REV_L365D_USD</td><td><span class="col-type">NUMBER(18,2)</span></td><td class="col-desc">Last 365 days</td></tr>
+        <tr><td class="col-name">ORDER_COUNT_L90</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">DAYS_SINCE_LAST_ORDER</td><td><span class="col-type">NUMBER</span></td><td class="col-desc">Recency</td></tr>
+        <tr><td class="col-name">PRODUCT_MIX_HHI</td><td><span class="col-type">NUMBER(8,4)</span></td><td class="col-desc">Herfindahl index</td></tr>
+        <tr><td class="col-name">CHURN_RISK_SCORE</td><td><span class="col-type">NUMBER(5,4)</span></td><td class="col-desc">0-1 Snowpark ML</td></tr>
+        <tr><td class="col-name">UPSELL_PROPENSITY</td><td><span class="col-type">NUMBER(5,4)</span></td><td class="col-desc">0-1 Snowpark ML</td></tr>
+      </table>
+      <div style="padding:8px 14px"><span class="tag tag-green">CLUSTER BY (AS_OF_DATE, CUSTOMER_HK)</span><span class="tag tag-red">WHERE order_date &lt; AS_OF (no leakage)</span></div>
+    </div>
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">PRODUCT_AFFINITY_FEATURES</span><span class="source-badge">PIT correct</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td class="col-name">CUSTOMER_HK</td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">PRODUCT_FAMILY</td><td><span class="col-type">VARCHAR(100)</span></td><td class="col-desc">UPS|COOLING|PDU…</td></tr>
+        <tr><td class="col-name">AS_OF_DATE</td><td><span class="col-type">DATE</span></td><td class="col-desc">PIT date</td></tr>
+        <tr><td class="col-name">PURCHASE_COUNT_L365</td><td><span class="col-type">NUMBER</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">LAST_PURCHASE_DATE</td><td><span class="col-type">DATE</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">REVENUE_SHARE_PCT</td><td><span class="col-type">NUMBER(5,2)</span></td><td class="col-desc">% of cust total rev</td></tr>
+        <tr><td class="col-name">CROSS_SELL_SCORE</td><td><span class="col-type">NUMBER(5,4)</span></td><td class="col-desc">Adjacent family propensity</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div style="font-size:13px; font-weight:700; color:var(--purple); margin-bottom:14px; font-family:var(--font-mono)">── AI / GENAI ZONE (VERTIV_ANALYTICS.AI)</div>
+  <div class="schema-grid">
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">CUSTOMER_360_VECTORS</span><span class="source-badge">Cortex e5</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><span class="col-name">CUSTOMER_HK</span><span class="pk-badge">PK</span></td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">CUSTOMER_NAME</td><td><span class="col-type">VARCHAR(500)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">CUSTOMER_SUMMARY</td><td><span class="col-type">VARCHAR(4000)</span></td><td class="col-desc">AI-generated narrative</td></tr>
+        <tr><td class="col-name">SUMMARY_VECTOR</td><td><span class="col-type">ARRAY</span></td><td class="col-desc">768-dim e5-base-v2</td></tr>
+        <tr><td class="col-name">KEY_PRODUCTS</td><td><span class="col-type">ARRAY</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">REVENUE_BAND</td><td><span class="col-type">VARCHAR(20)</span></td><td class="col-desc">ENTERPRISE|MID_MKT|SMB</td></tr>
+        <tr><td class="col-name">TAGS</td><td><span class="col-type">ARRAY</span></td><td class="col-desc"></td></tr>
+      </table>
+      <div style="padding:8px 14px"><span class="tag tag-purple">Cortex Semantic Search</span></div>
+    </div>
+    <div class="schema-card">
+      <div class="schema-card-header"><span class="tname">CORTEX_SEARCH_INDEX</span><span class="source-badge">Managed</span></div>
+      <table class="schema-table">
+        <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+        <tr><td class="col-name">ENTITY_TYPE</td><td><span class="col-type">VARCHAR(50)</span></td><td class="col-desc">DATA_PRODUCT|CUSTOMER|PRODUCT</td></tr>
+        <tr><td class="col-name">ENTITY_HK</td><td><span class="col-type">VARCHAR(64)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">ENTITY_NAME</td><td><span class="col-type">VARCHAR(500)</span></td><td class="col-desc"></td></tr>
+        <tr><td class="col-name">SEARCH_BODY</td><td><span class="col-type">VARCHAR(10000)</span></td><td class="col-desc">Text indexed by Cortex</td></tr>
+        <tr><td class="col-name">METADATA</td><td><span class="col-type">VARIANT</span></td><td class="col-desc">Schema/SLA/owner JSON</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ LINEAGE ════════════════════════ -->
+<div id="tab-lineage" class="content">
+  <div class="section-title">🔀 Data Mapping & Lineage <div class="line"></div></div>
+  <div class="section-sub">Field-level transformations: Source → Bronze → Silver → Gold · All 3 ERP systems + Salesforce</div>
+
+  <div class="lineage-container">
+    <table class="lineage-table">
+      <thead>
+        <tr>
+          <th>Source System</th>
+          <th>Bronze Field</th>
+          <th>Silver Field</th>
+          <th>Gold Field</th>
+          <th>Transformation Logic</th>
+          <th>Notes / DQ Rule</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- CUSTOMER ENTITY -->
+        <tr><td colspan="6" class="section-group">ENTITY: CUSTOMER — SAP_EUROPE.CUSTOMERS → CURATED.SALES.CUSTOMER → ANALYTICS.BI.DIM_CUSTOMER</td></tr>
+        <tr>
+          <td class="l-src">SAP (KUNNR)</td>
+          <td class="l-bronze">CUSTOMER_ID</td>
+          <td class="l-silver">CUSTOMER_HK</td>
+          <td class="l-gold">MASTER_CUSTOMER_HK<br><small style="color:var(--text3)">SAP_CUSTOMER_HK</small></td>
+          <td class="l-transform">SHA2(UPPER('SAP')||'|'||UPPER(TRIM(CUSTOMER_ID)), 256)</td>
+          <td class="l-notes">Primary key generation — 64-char hex. IS_QUARANTINED if NULL</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP (NAME1)</td>
+          <td class="l-bronze">CUSTOMER_NAME</td>
+          <td class="l-silver">CUSTOMER_NAME</td>
+          <td class="l-gold">CUSTOMER_NAME</td>
+          <td class="l-transform">Direct pass-through. Included in HASH_DIFF</td>
+          <td class="l-notes">DQ: DQ_COMPLETENESS_SCORE +20 if NOT NULL</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP (LAND1)</td>
+          <td class="l-bronze">COUNTRY_CODE</td>
+          <td class="l-silver">COUNTRY_CODE</td>
+          <td class="l-gold">COUNTRY_CODE / COUNTRY_NAME</td>
+          <td class="l-transform">Pass. Gold joins to DIM_REGION for COUNTRY_NAME</td>
+          <td class="l-notes">DQ: +20 score if NOT NULL</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP (ORT01)</td>
+          <td class="l-bronze">CITY</td>
+          <td class="l-silver">CITY</td>
+          <td class="l-gold">(embedded in region)</td>
+          <td class="l-transform">Pass-through. Part of HASH_DIFF concat</td>
+          <td class="l-notes">DQ: +20 score if NOT NULL</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP (PSTLZ)</td>
+          <td class="l-bronze">POSTAL_CODE</td>
+          <td class="l-silver">POSTAL_CODE</td>
+          <td class="l-gold">—</td>
+          <td class="l-transform">Pass-through</td>
+          <td class="l-notes">DQ: +20 score if NOT NULL</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP (KLIMK)</td>
+          <td class="l-bronze">CREDIT_LIMIT</td>
+          <td class="l-silver">CREDIT_LIMIT_USD</td>
+          <td class="l-gold">—</td>
+          <td class="l-transform">CREDIT_LIMIT × FX_TO_USD (from CONFIG.REFERENCE.CURRENCY)</td>
+          <td class="l-notes">FX lookup; default 1.0 if currency not found</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP (TELF1)</td>
+          <td class="l-bronze">PHONE <span class="pii-badge">PII</span></td>
+          <td class="l-silver">NOT loaded</td>
+          <td class="l-gold">—</td>
+          <td class="l-transform">PII stripped at Silver. Row Access Policy on Bronze</td>
+          <td class="l-notes">GDPR compliance boundary</td>
+        </tr>
+        <tr>
+          <td class="l-src">META</td>
+          <td class="l-bronze">LOAD_TIMESTAMP</td>
+          <td class="l-silver">EFFECTIVE_FROM</td>
+          <td class="l-gold">—</td>
+          <td class="l-transform">b.LOAD_TIMESTAMP → SCD2 version start</td>
+          <td class="l-notes">PK component (CUSTOMER_HK, EFFECTIVE_FROM)</td>
+        </tr>
+
+        <!-- SALES ORDER -->
+        <tr><td colspan="6" class="section-group">ENTITY: SALES ORDER — SAP/JDE/QAD → CURATED.SALES.SALES_ORDER → ANALYTICS.BI.FACT_SALES_ORDERS</td></tr>
+        <tr>
+          <td class="l-src">SAP (VBELN)<br>JDE (SDDOCO)<br>QAD (so_nbr)</td>
+          <td class="l-bronze">ORDER_ID</td>
+          <td class="l-silver">ORDER_HK</td>
+          <td class="l-gold">ORDER_HK</td>
+          <td class="l-transform">SHA2(UPPER(SOURCE_SYSTEM)||'|'||UPPER(ORDER_ID), 256)</td>
+          <td class="l-notes">Cross-system unique. IS_QUARANTINED if NULL</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP (WAERK)<br>JDE (SDCRCD)<br>QAD (so_curr)</td>
+          <td class="l-bronze">CURRENCY_CODE</td>
+          <td class="l-silver">CURRENCY_CODE</td>
+          <td class="l-gold">CURRENCY_CODE</td>
+          <td class="l-transform">Pass-through. Used to look up FX_TO_USD</td>
+          <td class="l-notes">Reference: VERTIV_CONFIG.REFERENCE.CURRENCY</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP (NETWR)<br>JDE (SDAEXP)<br>QAD (so_total)</td>
+          <td class="l-bronze">NET_AMOUNT</td>
+          <td class="l-silver">NET_AMOUNT_ORIG<br>NET_AMOUNT_USD</td>
+          <td class="l-gold">NET_AMOUNT_USD<br>TOTAL_AMOUNT_USD</td>
+          <td class="l-transform">NET_AMOUNT_ORIG = raw value<br>NET_AMOUNT_USD = ORIG × (SELECT FX_TO_USD FROM CONFIG WHERE CURRENCY_CODE = b.CURRENCY_CODE)<br>TOTAL_AMOUNT_USD = NET + TAX</td>
+          <td class="l-notes">Correlated subquery in DT. Default FX 1.0 for USD</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP (MWSBP)</td>
+          <td class="l-bronze">TAX_AMOUNT</td>
+          <td class="l-silver">TAX_AMOUNT_USD</td>
+          <td class="l-gold">TAX_AMOUNT_USD</td>
+          <td class="l-transform">TAX_AMOUNT × FX_TO_USD (same correlated lookup)</td>
+          <td class="l-notes">JDE/QAD: NULL → 0 via COALESCE</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP/JDE/QAD</td>
+          <td class="l-bronze">DISCOUNT_PCT</td>
+          <td class="l-silver">DISCOUNT_PCT</td>
+          <td class="l-gold">DISCOUNT_PCT</td>
+          <td class="l-transform">COALESCE(DISCOUNT_PCT, 0) — null-safe</td>
+          <td class="l-notes">Default 0 for JDE which may not supply discount</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP (KUNNR)<br>JDE (SDAN8)<br>QAD (so_cust_id)</td>
+          <td class="l-bronze">CUSTOMER_ID</td>
+          <td class="l-silver">CUSTOMER_HK</td>
+          <td class="l-gold">CUSTOMER_HK</td>
+          <td class="l-transform">SHA2(SOURCE_SYSTEM||'|'||CUSTOMER_ID, 256) — same function used for customer entity key</td>
+          <td class="l-notes">FK join to CURATED.SALES.CUSTOMER via hash</td>
+        </tr>
+        <tr>
+          <td class="l-src">Silver</td>
+          <td class="l-bronze">—</td>
+          <td class="l-silver">HASH_DIFF</td>
+          <td class="l-gold">—</td>
+          <td class="l-transform">SHA2(UPPER(ORDER_STATUS||'|'||NET_AMOUNT||'|'||CUSTOMER_ID), 256)</td>
+          <td class="l-notes">If HASH_DIFF unchanged → skip Silver re-insert</td>
+        </tr>
+        <tr>
+          <td class="l-src">Silver</td>
+          <td class="l-bronze">—</td>
+          <td class="l-silver">IS_CURRENT=TRUE</td>
+          <td class="l-gold">WHERE IS_CURRENT = TRUE</td>
+          <td class="l-transform">Gold Dynamic Table filters Silver on IS_CURRENT=TRUE AND IS_QUARANTINED=FALSE</td>
+          <td class="l-notes">Only current, clean records go to Gold</td>
+        </tr>
+
+        <!-- DATE DIMENSION -->
+        <tr><td colspan="6" class="section-group">ENTITY: DATE — ORDER_DATE → DIM_DATE (DATE_KEY join)</td></tr>
+        <tr>
+          <td class="l-src">SAP (AUDAT)<br>JDE (SDRQAJ Julian)<br>QAD (so_ord_date)</td>
+          <td class="l-bronze">ORDER_DATE</td>
+          <td class="l-silver">ORDER_DATE</td>
+          <td class="l-gold">DATE_KEY</td>
+          <td class="l-transform">TO_NUMBER(TO_CHAR(ORDER_DATE, 'YYYYMMDD')) → join key to DIM_DATE</td>
+          <td class="l-notes">JDE: Julian date converted at Bronze ingest</td>
+        </tr>
+
+        <!-- PRODUCT -->
+        <tr><td colspan="6" class="section-group">ENTITY: PRODUCT — SAP.ORDER_ITEMS → CURATED.SALES.PRODUCT → ANALYTICS.BI.DIM_PRODUCT</td></tr>
+        <tr>
+          <td class="l-src">SAP (MATNR)</td>
+          <td class="l-bronze">PRODUCT_CODE</td>
+          <td class="l-silver">PRODUCT_HK</td>
+          <td class="l-gold">PRODUCT_HK → PRODUCT_SK</td>
+          <td class="l-transform">SHA2('SAP'||'|'||PRODUCT_CODE, 256) → auto-SK in DIM_PRODUCT</td>
+          <td class="l-notes">DIM_PRODUCT seeded with 11 Vertiv catalog items</td>
+        </tr>
+        <tr>
+          <td class="l-src">SAP (ARKTX)</td>
+          <td class="l-bronze">PRODUCT_DESC</td>
+          <td class="l-silver">PRODUCT_NAME</td>
+          <td class="l-gold">PRODUCT_NAME</td>
+          <td class="l-transform">Pass-through</td>
+          <td class="l-notes">Families: UPS|COOLING|PDU|RACK|MON|SERVICES</td>
+        </tr>
+
+        <!-- OPPORTUNITY / CRM -->
+        <tr><td colspan="6" class="section-group">ENTITY: OPPORTUNITY — SALESFORCE_GLOBAL.OPPORTUNITIES → CURATED.SALES.OPPORTUNITY</td></tr>
+        <tr>
+          <td class="l-src">SFDC (Id)</td>
+          <td class="l-bronze">OPP_ID</td>
+          <td class="l-silver">OPP_HK</td>
+          <td class="l-gold">—</td>
+          <td class="l-transform">SHA2('SALESFORCE'||'|'||OPP_ID, 256)</td>
+          <td class="l-notes">18-char SFDC ID preserved as ORIGINAL_ID</td>
+        </tr>
+        <tr>
+          <td class="l-src">SFDC (AccountId)</td>
+          <td class="l-bronze">ACCOUNT_ID</td>
+          <td class="l-silver">CUSTOMER_HK</td>
+          <td class="l-gold">—</td>
+          <td class="l-transform">MDM match attempt: SHA2('SALESFORCE'||'|'||ACCOUNT_ID) first, then cross-match to SAP/JDE hash if MDM resolved</td>
+          <td class="l-notes">NULL if no MDM match found</td>
+        </tr>
+        <tr>
+          <td class="l-src">SFDC (Amount)</td>
+          <td class="l-bronze">AMOUNT</td>
+          <td class="l-silver">AMOUNT_USD</td>
+          <td class="l-gold">—</td>
+          <td class="l-transform">Direct pass — Salesforce stores in USD natively</td>
+          <td class="l-notes">No FX conversion needed</td>
+        </tr>
+
+        <!-- ML FEATURES -->
+        <tr><td colspan="6" class="section-group">ENTITY: ML FEATURES — FACT_SALES_ORDERS → ML_FEATURES.CUSTOMER_REVENUE_FEATURES (Point-in-Time)</td></tr>
+        <tr>
+          <td class="l-src">Gold FACT</td>
+          <td class="l-bronze">—</td>
+          <td class="l-silver">—</td>
+          <td class="l-gold">REV_L30D_USD</td>
+          <td class="l-transform">SUM(NET_AMOUNT_USD) WHERE ORDER_DATE BETWEEN (AS_OF_DATE-30) AND AS_OF_DATE (strict &lt;, no leakage)</td>
+          <td class="l-notes">Snowpark Python feature engineering daily 02:00 UTC</td>
+        </tr>
+        <tr>
+          <td class="l-src">Gold FACT</td>
+          <td class="l-bronze">—</td>
+          <td class="l-silver">—</td>
+          <td class="l-gold">CHURN_RISK_SCORE</td>
+          <td class="l-transform">Snowpark ML model trained on historical features. Output 0-1 probability. Stored back in ML_FEATURES table</td>
+          <td class="l-notes">ML_WH (Large). FEATURE_VERSION incremented on logic change</td>
+        </tr>
+
+        <!-- DQ -->
+        <tr><td colspan="6" class="section-group">CROSS-CUTTING: DATA QUALITY — All sources → VERTIV_AUDIT.DQ.DQ_BATCH_LOG</td></tr>
+        <tr>
+          <td class="l-src">Any Bronze</td>
+          <td class="l-bronze">Any field</td>
+          <td class="l-silver">DQ_COMPLETENESS_SCORE<br>IS_QUARANTINED</td>
+          <td class="l-gold">(filtered out)</td>
+          <td class="l-transform">CASE WHEN field IS NOT NULL THEN 20 END — up to 5 fields × 20 = 100 score. IS_QUARANTINED = (score &lt; threshold OR PK IS NULL)</td>
+          <td class="l-notes">Quarantined records go to VERTIV_AUDIT.DQ.QUARANTINE for human review</td>
+        </tr>
+        <tr>
+          <td class="l-src">VERTIV_CONFIG</td>
+          <td class="l-bronze">—</td>
+          <td class="l-silver">SOURCE_BATCH_ID</td>
+          <td class="l-gold">—</td>
+          <td class="l-transform">BATCH_ID from VERTIV_CONFIG.METADATA.BATCH_RUN_LOG — links every row to batch run for lineage trace</td>
+          <td class="l-notes">Enables record-level lineage back to source file/batch</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════ PERFORMANCE ════════════════════════ -->
+<div id="tab-perf" class="content">
+  <div class="section-title">⚡ Performance Considerations <div class="line"></div></div>
+  <div class="section-sub">Clustering · Search Optimization · Resource Governance · Latency Design · Scaling Strategy</div>
+
+  <div class="perf-grid">
+    <div class="perf-card">
+      <div class="perf-card-title">Bronze Clustering</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">SALES_ORDERS: <span>CLUSTER BY (LOAD_DATE, ORDER_DATE)</span> — time-travel queries and incremental loads skip most micro-partitions</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">ORDER_ITEMS: <span>CLUSTER BY (LOAD_DATE, ORDER_ID)</span> — ORDER_ID joins prune heavily</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">CUSTOMERS: <span>CLUSTER BY (LOAD_DATE)</span> — batch loads are date-sequential</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Kafka events: <span>CLUSTER BY DATE(EVENT_TIMESTAMP)</span> — real-time queries filter by day</div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">Silver Clustering</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">CUSTOMER: <span>CLUSTER BY (CUSTOMER_HK)</span> — point lookups by hash key are O(1)</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">PRODUCT: <span>CLUSTER BY (PRODUCT_HK)</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">SALES_ORDER: <span>CLUSTER BY (CUSTOMER_HK, DATE(ORDER_DATE))</span> — customer-scoped + time range queries</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">ORDER_LINE: <span>CLUSTER BY (ORDER_HK)</span> — header-to-line joins</div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">Gold Clustering</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">FACT_SALES_ORDERS: implicit via Dynamic Table (inherits Silver clustering)</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">ML Features: <span>CLUSTER BY (AS_OF_DATE, CUSTOMER_HK)</span> — PIT feature retrieval for model training</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">MODEL_PREDICTIONS: <span>CLUSTER BY (MODEL_NAME, AS_OF_DATE)</span></div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">Search Optimization</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">DIM_CUSTOMER: <span>EQUALITY(CUSTOMER_NAME, COUNTRY_CODE, MASTER_CUSTOMER_HK)</span> — point lookups from BI tools</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">DIM_PRODUCT: <span>EQUALITY(PRODUCT_CODE, PRODUCT_NAME, PRODUCT_FAMILY)</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Avoids full table scan for "WHERE PRODUCT_CODE = 'UPS-GXT5-10K'"</div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">Warehouse Sizing</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">INGEST_WH <span>XSmall</span> — Snowpipe is serverless; only DQ tasks need compute</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">TRANSFORM_WH <span>Small</span> — Dynamic Tables: incremental, low memory</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">ANALYTICS_WH <span>Medium multi-cluster 1-3</span> — concurrency scaling for BI, ECONOMY policy saves credits</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">ML_WH <span>Large</span> — 60s auto-suspend; Snowpark needs RAM for pandas/scikit-learn</div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">Cost Governance</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Resource Monitor <span>VERTIV_DEMO_GUARD</span>: 300 credits/month</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Notify at 75% → 90% → Suspend at 100%</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Applied to <span>ANALYTICS_WH + ML_WH</span> (expensive warehouses only)</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Bronze: 7d retention. Silver: 30d. Gold/Products: 90d — cost-tiered</div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">Latency Design</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Kafka → Bronze: <span>near real-time</span> via Snowpipe Streaming</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Bronze → Silver Dynamic Tables: <span>5-minute lag</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Silver → Gold Fact: <span>15-minute lag</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">SLO freshness target: <span>≤60 minutes</span> end-to-end</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">SLO P95 query: <span>≤5 seconds</span></div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">Materialized Views</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">MV_REGIONAL_SALES_DAILY: pre-aggregated by SOURCE_SYSTEM, REGION, DATE — eliminates GROUP BY on FACT for most BI queries</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">MV_PRODUCT_REVENUE_MONTHLY: PRODUCT_SK × SOURCE × DATE — avoids cross-dim joins for product revenue reports</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Snowflake auto-maintains MVs when base tables change</div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">Data Quality Performance</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">DQ Framework Task runs every 6h on <span>TRANSFORM_WH</span> — off-peak</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">HASH_DIFF change detection avoids full row comparisons — single SHA256 comparison per row</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">SLI measurement task: every 30min on <span>INGEST_WH (XSmall)</span> — lightweight aggregation only</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Quarantine table: rejected records stored as VARIANT — forensic replay without schema dependency</div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">RBAC & Row Policies</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">RBAC schema-level boundaries: SAP_EUROPE_READER can only see SAP_EUROPE schema (PII protection)</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Row Access Policy on Bronze: regional readers filtered to their own region's rows</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">No performance impact on Global Analyst role (no row filter applied)</div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Data Products DB (VERTIV_PRODUCTS): Secure Views strip PII before Marketplace listing</div></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-title" style="margin-top:4px">Scheduled Automation <div class="line"></div></div>
+  <div class="perf-grid">
+    <div class="perf-card">
+      <div class="perf-card-title">TASK_DQ_FRAMEWORK_ALL</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Schedule: <span>Every 6 hours (*/6h UTC)</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">WH: <span>TRANSFORM_WH</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Runs DAMA-framework DQ rules against all Silver tables. Logs to VERTIV_AUDIT.DQ.DQ_BATCH_LOG</div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">TASK_ML_FEATURE_PIPELINE</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Schedule: <span>Daily at 02:00 UTC</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">WH: <span>TRANSFORM_WH → ML_WH for scoring</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Computes point-in-time revenue, frequency, recency features. Calls Snowpark Python churn + upsell models</div></div>
+    </div>
+    <div class="perf-card">
+      <div class="perf-card-title">TASK_SLI_MEASUREMENT</div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Schedule: <span>Every 30 minutes</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">WH: <span>INGEST_WH (XSmall)</span></div></div>
+      <div class="perf-item"><span class="bullet">▸</span><div class="val">Measures data freshness, 6 DAMA DQ dimensions, SLO compliance. Writes to PRODUCT_SLI_LOG</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
