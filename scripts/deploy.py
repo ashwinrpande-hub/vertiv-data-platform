@@ -32,14 +32,14 @@ log = logging.getLogger("deploy")
 PLAN = [
     ("ACCOUNTADMIN", "sql/00_setup/01_databases_warehouses.sql"),
     ("SECURITYADMIN", "sql/00_setup/02_roles_rbac.sql"),
-    ("VERTIV_PLATFORM_ADMIN", "sql/01_config/01_config_tables.sql"),
-    ("VERTIV_PLATFORM_ADMIN", "sql/02_bronze/01_bronze_ddl.sql"),
-    ("VERTIV_PLATFORM_ADMIN", "sql/03_silver/01_silver_ddl.sql"),
-    ("VERTIV_PLATFORM_ADMIN", "sql/04_gold/01_gold_bi.sql"),
-    ("VERTIV_PLATFORM_ADMIN", "sql/04_gold/02_gold_ml_ai.sql"),
+    ("PLATFORM_ADMIN", "sql/01_config/01_config_tables.sql"),
+    ("PLATFORM_ADMIN", "sql/02_bronze/01_bronze_ddl.sql"),
+    ("PLATFORM_ADMIN", "sql/03_silver/01_silver_ddl.sql"),
+    ("PLATFORM_ADMIN", "sql/04_gold/01_gold_bi.sql"),
+    ("PLATFORM_ADMIN", "sql/04_gold/02_gold_ml_ai.sql"),
     ("ACCOUNTADMIN", "sql/05_security/01_security_data_products.sql"),
-    ("VERTIV_PLATFORM_ADMIN", "sql/06_data_products/01_data_mesh_products.sql"),
-    ("VERTIV_PLATFORM_ADMIN", "sql/07_automation/01_tasks.sql"),
+    ("PLATFORM_ADMIN", "sql/06_data_products/01_data_mesh_products.sql"),
+    ("PLATFORM_ADMIN", "sql/07_automation/01_tasks.sql"),
 ]
 
 
@@ -164,7 +164,7 @@ def deploy(execute: bool, step: str = None, from_step: str = None):
         plan = [(r, f) for r, f in PLAN if Path(f).parts[1] >= from_step]
 
     log.info(f"\n{'='*55}")
-    log.info(f"Vertiv Snowflake Deploy  {'EXECUTE' if execute else 'DRY-RUN'}")
+    log.info(f"Enterprise Co Snowflake Deploy  {'EXECUTE' if execute else 'DRY-RUN'}")
     log.info(f"Account : {os.environ['SNOWFLAKE_ACCOUNT']}")
     log.info(f"Steps   : {len(plan)}")
     log.info(f"Started : {datetime.now().isoformat()}")
@@ -214,7 +214,7 @@ def deploy(execute: bool, step: str = None, from_step: str = None):
 
 
 if __name__ == "__main__":
-    p = argparse.ArgumentParser(description="Vertiv Snowflake deploy script")
+    p = argparse.ArgumentParser(description="Enterprise Co Snowflake deploy script")
     p.add_argument(
         "--execute", action="store_true", help="Actually run SQL (default: dry-run)"
     )

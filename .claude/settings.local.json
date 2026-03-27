@@ -3,7 +3,11 @@
     "allow": [
       "Bash(aws --version)",
       "Bash(powershell.exe -Command \"sam --version; aws --version\")",
-      "Bash(PYTHONIOENCODING=utf-8 python - <<'EOF':*)"
+      "Bash(PYTHONIOENCODING=utf-8 python - <<'EOF':*)",
+      "Bash(ls -la \"C:\\\\Study\\\\vertiv-data-platform\\\\sql\"\" 2>/dev/null || find \"C:Studyvertiv-data-platformsql \" -maxdepth 1 -type f)",
+      "Bash(PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe - <<'EOF':*)",
+      "Read(//c/Study/**)",
+      "Bash(python update_presentation.py)"
     ]
   }
 }

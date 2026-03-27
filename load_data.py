@@ -13,7 +13,7 @@ conn = snowflake.connector.connect(
     user=os.environ["SNOWFLAKE_USER"],
     password=os.environ["SNOWFLAKE_PASSWORD"],
     warehouse="INGEST_WH",
-    role="VERTIV_PLATFORM_ADMIN",
+    role="PLATFORM_ADMIN",
 )
 
 # Industry code replacements to fit VARCHAR(10)
@@ -37,9 +37,9 @@ ORDER_TYPE_MAP = {
 }
 
 tables = {
-    "VERTIV_RAW.SAP_EUROPE.CUSTOMERS":    "data/sap_customers.csv",
-    "VERTIV_RAW.SAP_EUROPE.SALES_ORDERS": "data/sap_sales_orders.csv",
-    "VERTIV_RAW.JDE_AMERICAS.SALES_ORDERS": "data/jde_sales_orders.csv",
+    "ENTERPRISE_RAW.SAP_EUROPE.CUSTOMERS":    "data/sap_customers.csv",
+    "ENTERPRISE_RAW.SAP_EUROPE.SALES_ORDERS": "data/sap_sales_orders.csv",
+    "ENTERPRISE_RAW.JDE_AMERICAS.SALES_ORDERS": "data/jde_sales_orders.csv",
 }
 
 for full_table, csv_path in tables.items():

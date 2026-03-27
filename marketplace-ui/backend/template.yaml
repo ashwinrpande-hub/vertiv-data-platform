@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
-Description: Vertiv Data Marketplace API — Lambda + API Gateway
+Description: Enterprise Data Marketplace API — Lambda + API Gateway
 
 Globals:
   Function:
@@ -14,18 +14,18 @@ Globals:
         SNOWFLAKE_USER: !Ref SnowflakeUser
         SNOWFLAKE_PASSWORD: !Ref SnowflakePassword
         SNOWFLAKE_WAREHOUSE: ANALYTICS_WH
-        SNOWFLAKE_DATABASE: VERTIV_PRODUCTS
+        SNOWFLAKE_DATABASE: DATA_PRODUCTS
         SNOWFLAKE_SCHEMA: SALES_PERFORMANCE
-        SNOWFLAKE_ROLE: VERTIV_GLOBAL_ANALYST
+        SNOWFLAKE_ROLE: GLOBAL_ANALYST
         ALLOWED_ORIGINS: !Ref AllowedOrigins
 
 Parameters:
   SnowflakeAccount:
     Type: String
-    Default: drdwkxe-gmc96114
+    Default: <SNOWFLAKE_ACCOUNT>
   SnowflakeUser:
     Type: String
-    Default: CHANDANPATIL99
+    Default: <SNOWFLAKE_USER>
   SnowflakePassword:
     Type: String
     NoEcho: true
@@ -46,10 +46,10 @@ Resources:
   MarketplaceFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: vertiv-marketplace-api
+      FunctionName: enterprise-marketplace-api
       CodeUri: .
       Handler: main.handler
-      Description: Vertiv Data Marketplace — FastAPI on Lambda
+      Description: Enterprise Data Marketplace — FastAPI on Lambda
       Events:
         ApiRoot:
           Type: Api
@@ -72,6 +72,6 @@ Outputs:
     Description: API Gateway endpoint URL
     Value: !Sub "https://${MarketplaceApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
     Export:
-      Name: VertivMarketplaceApiUrl
+      Name: Enterprise CoMarketplaceApiUrl
   FunctionArn:
     Value: !GetAtt MarketplaceFunction.Arn

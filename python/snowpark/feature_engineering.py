@@ -3,7 +3,7 @@
 vertiv-data-platform/python/snowpark/feature_engineering.py
 
 Point-in-time correct ML feature engineering using Snowpark
-Writes to VERTIV_ANALYTICS.ML_FEATURES + AI vector tables
+Writes to ENTERPRISE_ANALYTICS.ML_FEATURES + AI vector tables
 
 Usage:
   python feature_engineering.py
@@ -42,9 +42,9 @@ def get_session() -> Session:
         "user":      os.environ["SNOWFLAKE_USER"],
         "password":  os.environ["SNOWFLAKE_PASSWORD"],
         "warehouse": "ML_WH",
-        "database":  "VERTIV_ANALYTICS",
+        "database":  "ENTERPRISE_ANALYTICS",
         "schema":    "ML_FEATURES",
-        "role":      "VERTIV_ML_ENGINEER",
+        "role":      "ML_ENGINEER",
     }).create()
 
 
@@ -62,7 +62,7 @@ def compute_customer_revenue_features(session: Session,
 
     # All Silver orders strictly before as_of_date (SAP Dynamic Table — has data)
     orders = (
-        session.table("VERTIV_CURATED.SALES.DT_SILVER_ORDER_SAP")
+        session.table("ENTERPRISE_CURATED.SALES.DT_SILVER_ORDER_SAP")
         .filter(F.col("IS_CURRENT") == True)
         .filter(F.col("IS_QUARANTINED") == False)
         .filter(F.col("ORDER_DATE") < F.lit(d_str))  # STRICT: < not <=
@@ -177,7 +177,7 @@ def compute_customer_revenue_features(session: Session,
     count = final.count()
     # Pure SQL INSERT — avoids AUTOINCREMENT/LOAD_TIMESTAMP mismatch and CREATE TABLE privileges
     session.sql(f"""
-        INSERT INTO VERTIV_ANALYTICS.ML_FEATURES.CUSTOMER_REVENUE_FEATURES
+        INSERT INTO ENTERPRISE_ANALYTICS.ML_FEATURES.CUSTOMER_REVENUE_FEATURES
             (CUSTOMER_HK, AS_OF_DATE, FEATURE_VERSION,
              REV_L7D_USD, REV_L30D_USD, REV_L90D_USD, REV_L365D_USD, REV_PREV_YEAR_USD,
              ORDER_COUNT_L30, ORDER_COUNT_L90, ORDER_COUNT_L365,
@@ -201,7 +201,7 @@ def compute_customer_revenue_features(session: Session,
             MIN(o.NET_AMOUNT_USD)  AS MIN_ORDER_VALUE,
             MAX(o.ORDER_DATE)      AS LAST_ORDER_DATE,
             COUNT(*)               AS TOTAL_ORDERS
-          FROM VERTIV_CURATED.SALES.DT_SILVER_ORDER_SAP o
+          FROM ENTERPRISE_CURATED.SALES.DT_SILVER_ORDER_SAP o
           WHERE o.IS_CURRENT = TRUE
             AND o.IS_QUARANTINED = FALSE
             AND o.ORDER_DATE < '{d_str}'::DATE
@@ -232,12 +232,12 @@ def generate_customer_summaries(session: Session) -> int:
     log.info("  Generating Customer 360 narratives...")
 
     sql = """
-    MERGE INTO VERTIV_ANALYTICS.AI.CUSTOMER_360_VECTORS tgt
+    MERGE INTO ENTERPRISE_ANALYTICS.AI.CUSTOMER_360_VECTORS tgt
     USING (
       SELECT
         c.MASTER_CUSTOMER_HK                                      AS CUSTOMER_HK,
         c.CUSTOMER_NAME,
-        'Vertiv customer: '   || c.CUSTOMER_NAME
+        'Enterprise Co customer: '   || c.CUSTOMER_NAME
         || '. Industry: '     || COALESCE(c.INDUSTRY, 'Unknown')
         || '. Region: '       || COALESCE(c.REGION, 'Unknown')
         || '. Segment: '      || COALESCE(c.SEGMENT, 'Unknown')
@@ -253,8 +253,8 @@ def generate_customer_summaries(session: Session) -> int:
           WHEN COALESCE(f.REV_L365D_USD,0) > 1000000 THEN 'ENTERPRISE'
           WHEN COALESCE(f.REV_L365D_USD,0) > 100000  THEN 'MID_MARKET'
           ELSE 'SMB' END                                           AS REVENUE_BAND
-      FROM VERTIV_ANALYTICS.BI.DIM_CUSTOMER c
-      LEFT JOIN VERTIV_ANALYTICS.ML_FEATURES.CUSTOMER_REVENUE_FEATURES f
+      FROM ENTERPRISE_ANALYTICS.BI.DIM_CUSTOMER c
+      LEFT JOIN ENTERPRISE_ANALYTICS.ML_FEATURES.CUSTOMER_REVENUE_FEATURES f
         ON  c.MASTER_CUSTOMER_HK = f.CUSTOMER_HK
         AND f.AS_OF_DATE   = CURRENT_DATE()
         AND f.FEATURE_VERSION = 1
@@ -283,7 +283,7 @@ def generate_customer_summaries(session: Session) -> int:
 
     # Generate embeddings (requires Cortex enabled on account)
     embed_sql = """
-    UPDATE VERTIV_ANALYTICS.AI.CUSTOMER_360_VECTORS
+    UPDATE ENTERPRISE_ANALYTICS.AI.CUSTOMER_360_VECTORS
     SET SUMMARY_VECTOR = SNOWFLAKE.CORTEX.EMBED_TEXT_768(
         'e5-base-v2',
         CUSTOMER_SUMMARY
@@ -298,7 +298,7 @@ def generate_customer_summaries(session: Session) -> int:
         log.warning(f"    Cortex embed skipped (check Cortex is enabled in account): {e}")
 
     try:
-        return session.table("VERTIV_ANALYTICS.AI.CUSTOMER_360_VECTORS").count()
+        return session.table("ENTERPRISE_ANALYTICS.AI.CUSTOMER_360_VECTORS").count()
     except Exception:
         return 0
 
@@ -307,7 +307,7 @@ def write_model_predictions_sample(session: Session):
     """Write sample model predictions (demo data if real model not trained)."""
     log.info("  Writing sample model predictions...")
     sql = """
-    INSERT INTO VERTIV_ANALYTICS.ML_FEATURES.MODEL_PREDICTIONS
+    INSERT INTO ENTERPRISE_ANALYTICS.ML_FEATURES.MODEL_PREDICTIONS
       (MODEL_NAME, MODEL_VERSION, ENTITY_TYPE, ENTITY_HK,
        AS_OF_DATE, PREDICTION_LABEL, PREDICTION_SCORE,
        PREDICTION_BAND, CONFIDENCE_INTERVAL)
@@ -325,11 +325,11 @@ def write_model_predictions_sample(session: Session):
            WHEN CHURN_RISK_SCORE > 0.4 THEN 'MEDIUM'
            ELSE 'LOW' END              AS PREDICTION_BAND,
       0.05                             AS CONFIDENCE_INTERVAL
-    FROM VERTIV_ANALYTICS.ML_FEATURES.CUSTOMER_REVENUE_FEATURES
+    FROM ENTERPRISE_ANALYTICS.ML_FEATURES.CUSTOMER_REVENUE_FEATURES
     WHERE AS_OF_DATE = CURRENT_DATE()
     AND   FEATURE_VERSION = 1
     AND   CUSTOMER_HK NOT IN (
-      SELECT ENTITY_HK FROM VERTIV_ANALYTICS.ML_FEATURES.MODEL_PREDICTIONS
+      SELECT ENTITY_HK FROM ENTERPRISE_ANALYTICS.ML_FEATURES.MODEL_PREDICTIONS
       WHERE MODEL_NAME='CHURN_RISK' AND AS_OF_DATE=CURRENT_DATE()
     )
     """
@@ -355,7 +355,7 @@ def run_pipeline(session: Session, as_of: date, version: int = 1):
 
 def main():
     import argparse
-    p = argparse.ArgumentParser(description="Vertiv Feature Engineering Pipeline")
+    p = argparse.ArgumentParser(description="Enterprise Co Feature Engineering Pipeline")
     p.add_argument("--as-of-date", default=None, help="YYYY-MM-DD (default: today)")
     p.add_argument("--days-back",  type=int, default=1,
                    help="Also compute for N days back (default: 1)")

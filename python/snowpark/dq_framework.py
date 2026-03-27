@@ -3,7 +3,7 @@
 vertiv-data-platform/python/snowpark/dq_framework.py
 
 DAMA 6-Dimension Data Quality Framework using Snowpark
-Runs checks on Silver layer, logs results to VERTIV_AUDIT.DQ tables
+Runs checks on Silver layer, logs results to PLATFORM_AUDIT.DQ tables
 
 Usage:
   python dq_framework.py --source SAP
@@ -44,9 +44,9 @@ def get_session() -> Session:
         "user":      os.environ["SNOWFLAKE_USER"],
         "password":  os.environ["SNOWFLAKE_PASSWORD"],
         "warehouse": "INGEST_WH",
-        "database":  "VERTIV_CURATED",
+        "database":  "ENTERPRISE_CURATED",
         "schema":    "SALES",
-        "role":      "VERTIV_PLATFORM_ADMIN",
+        "role":      "PLATFORM_ADMIN",
     }).create()
 
 
@@ -207,7 +207,7 @@ class DQFramework:
         """Cross-source check: EUR orders should come from EUROPE region."""
         log.info(f"  [CONSISTENCY] {table}")
         try:
-            df  = self.session.table(f"VERTIV_CURATED.SALES.SALES_ORDER").filter(
+            df  = self.session.table(f"ENTERPRISE_CURATED.SALES.SALES_ORDER").filter(
                 F.col("SOURCE_SYSTEM") == source
             )
             total = df.count()
@@ -241,7 +241,7 @@ class DQFramework:
         cur = self.session.connection.cursor()
         try:
             cur.executemany("""
-                INSERT INTO VERTIV_AUDIT.DQ.DQ_BATCH_LOG
+                INSERT INTO PLATFORM_AUDIT.DQ.DQ_BATCH_LOG
                   (BATCH_ID, SOURCE_SYSTEM, SOURCE_REGION, TARGET_TABLE,
                    DAMA_DIMENSION, RULE_NAME, RECORDS_CHECKED, RECORDS_PASSED,
                    RECORDS_FAILED, RECORDS_QUARANTINED, PASS_RATE)
@@ -262,7 +262,7 @@ class DQFramework:
         log.info(f"DAMA 6-Dimension DQ  source={source}  batch={self.batch_id}")
         log.info(f"{'='*55}")
 
-        df = self.session.table("VERTIV_CURATED.SALES.DT_SILVER_ORDER_SAP").filter(
+        df = self.session.table("ENTERPRISE_CURATED.SALES.DT_SILVER_ORDER_SAP").filter(
             F.col("SOURCE_SYSTEM") == source
         )
         n = df.count()
@@ -287,13 +287,13 @@ class DQFramework:
         all_results = [r for v in report.values() for r in v]
         avg_pass = sum(r["pass_rate"] for r in all_results) / len(all_results) if all_results else 0
         log.info(f"\n  Summary: {len(all_results)} checks | avg pass rate {avg_pass:.1f}%")
-        log.info(f"  Batch logged to VERTIV_AUDIT.DQ.DQ_BATCH_LOG")
+        log.info(f"  Batch logged to PLATFORM_AUDIT.DQ.DQ_BATCH_LOG")
         return report
 
 
 def main():
     import argparse
-    p = argparse.ArgumentParser(description="Vertiv DAMA 6-Dimension DQ Framework")
+    p = argparse.ArgumentParser(description="Enterprise Co DAMA 6-Dimension DQ Framework")
     p.add_argument("--source",   default="SAP",
                    choices=["SAP","JDE","QAD","SALESFORCE","ALL"])
     p.add_argument("--batch-id", default=None)

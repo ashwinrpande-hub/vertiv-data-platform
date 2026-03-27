@@ -1,5 +1,5 @@
 """
-Vertiv Data Marketplace — FastAPI Backend
+Enterprise Data Marketplace — FastAPI Backend
 Deployed as AWS Lambda via Mangum + API Gateway
 Connects to Snowflake: V_DATA_MARKETPLACE, CORTEX_SEARCH, Data Products
 """
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # ─── App Setup ───────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="Vertiv Data Marketplace API",
+    title="Enterprise Data Marketplace API",
     version="1.0.0",
     description="AI-powered data product discovery backed by Snowflake Cortex",
 )
@@ -43,9 +43,9 @@ def get_conn():
         user=os.environ["SNOWFLAKE_USER"],
         password=os.environ["SNOWFLAKE_PASSWORD"],
         warehouse=os.getenv("SNOWFLAKE_WAREHOUSE", "ANALYTICS_WH"),
-        database=os.getenv("SNOWFLAKE_DATABASE", "VERTIV_PRODUCTS"),
+        database=os.getenv("SNOWFLAKE_DATABASE", "DATA_PRODUCTS"),
         schema=os.getenv("SNOWFLAKE_SCHEMA", "SALES_PERFORMANCE"),
-        role=os.getenv("SNOWFLAKE_ROLE", "VERTIV_GLOBAL_ANALYST"),
+        role=os.getenv("SNOWFLAKE_ROLE", "GLOBAL_ANALYST"),
     )
 
 def run_query(sql: str, params: tuple = ()) -> list[dict]:
@@ -89,7 +89,7 @@ def list_products():
             SHARE_NAME,
             CURRENT_DATA_AGE_MINUTES,
             STATUS
-        FROM VERTIV_CONFIG.METADATA.V_DATA_MARKETPLACE
+        FROM PLATFORM_CONFIG.METADATA.V_DATA_MARKETPLACE
         WHERE STATUS = 'ACTIVE'
         ORDER BY TRUST_SCORE DESC
     """
@@ -106,7 +106,7 @@ def get_product(product_id: str):
     """Return full detail for a single data product."""
     sql = """
         SELECT *
-        FROM VERTIV_CONFIG.METADATA.V_DATA_MARKETPLACE
+        FROM PLATFORM_CONFIG.METADATA.V_DATA_MARKETPLACE
         WHERE PRODUCT_ID = %s
     """
     try:
@@ -132,7 +132,7 @@ def search_products(q: str = Query(..., min_length=1, description="Natural langu
         sql = """
             SELECT PARSE_JSON(
                 SNOWFLAKE.CORTEX.SEARCH_PREVIEW(
-                    'VERTIV_ANALYTICS.AI.CORTEX_SEARCH_INDEX',
+                    'ENTERPRISE_ANALYTICS.AI.CORTEX_SEARCH_INDEX',
                     OBJECT_CONSTRUCT(
                         'query', %s,
                         'columns', ARRAY_CONSTRUCT('PRODUCT_ID', 'PRODUCT_NAME', 'DOMAIN', 'DESCRIPTION', 'TAGS'),
@@ -149,7 +149,7 @@ def search_products(q: str = Query(..., min_length=1, description="Natural langu
             if product_ids:
                 placeholders = ", ".join(["%s"] * len(product_ids))
                 detail_sql = f"""
-                    SELECT * FROM VERTIV_PRODUCTS.INFORMATION_SCHEMA.V_DATA_MARKETPLACE
+                    SELECT * FROM DATA_PRODUCTS.INFORMATION_SCHEMA.V_DATA_MARKETPLACE
                     WHERE PRODUCT_ID IN ({placeholders})
                 """
                 products = run_query(detail_sql, tuple(product_ids))
@@ -159,7 +159,7 @@ def search_products(q: str = Query(..., min_length=1, description="Natural langu
 
     # Keyword fallback
     keyword_sql = """
-        SELECT * FROM VERTIV_CONFIG.METADATA.V_DATA_MARKETPLACE
+        SELECT * FROM PLATFORM_CONFIG.METADATA.V_DATA_MARKETPLACE
         WHERE STATUS = 'ACTIVE'
           AND (LOWER(PRODUCT_NAME) LIKE %s
            OR LOWER(DESCRIPTION) LIKE %s
@@ -174,10 +174,10 @@ def search_products(q: str = Query(..., min_length=1, description="Natural langu
 
 @app.post("/access-request")
 def submit_access_request(req: AccessRequest):
-    """Log an access request to VERTIV_AUDIT."""
+    """Log an access request to PLATFORM_AUDIT."""
     ticket_id = f"REQ-{int(datetime.now(timezone.utc).timestamp())}"
     sql = """
-        INSERT INTO VERTIV_AUDIT.PUBLIC.ACCESS_REQUESTS
+        INSERT INTO PLATFORM_AUDIT.PUBLIC.ACCESS_REQUESTS
             (TICKET_ID, PRODUCT_ID, REQUESTER_NAME, REQUESTER_EMAIL, JUSTIFICATION, STATUS, REQUESTED_AT)
         VALUES (%s, %s, %s, %s, %s, 'PENDING', CURRENT_TIMESTAMP())
     """
@@ -197,7 +197,7 @@ def platform_metrics():
         SELECT
             COUNT(*) AS TOTAL_PRODUCTS,
             AVG(TRUST_SCORE) AS AVG_TRUST_SCORE
-        FROM VERTIV_CONFIG.METADATA.V_DATA_MARKETPLACE
+        FROM PLATFORM_CONFIG.METADATA.V_DATA_MARKETPLACE
         WHERE STATUS = 'ACTIVE'
     """
     try:

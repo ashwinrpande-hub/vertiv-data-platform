@@ -1,8 +1,8 @@
-# Vertiv Data Marketplace — Claude Code Spec
+# Enterprise Data Marketplace — Claude Code Spec
 
 ## Purpose
 This spec gives Claude Code everything it needs to continue, debug, or extend the
-Vertiv Data Marketplace project with zero assumptions. Read this entire file before
+Enterprise Data Marketplace project with zero assumptions. Read this entire file before
 taking any action.
 
 ---
@@ -14,9 +14,9 @@ taking any action.
 | Candidate | Ashwin Pande |
 | GitHub user | ashwinrpande-hub |
 | GitHub repo | https://github.com/ashwinrpande-hub/vertiv-data-platform |
-| Snowflake account | drdwkxe-gmc96114 |
-| Snowflake user | CHANDANPATIL99 |
-| Snowflake role (default) | VERTIV_GLOBAL_ANALYST |
+| Snowflake account | <SNOWFLAKE_ACCOUNT> |
+| Snowflake user | <SNOWFLAKE_USER> |
+| Snowflake role (default) | GLOBAL_ANALYST |
 | Python version | 3.11.9 (venv at .venv\Scripts\) |
 | Node version | v24.14.1 |
 | npm version | 11.11.0 |
@@ -68,7 +68,7 @@ C:\Study\vertiv-data-platform\
     │   └── src/
     │       ├── main.jsx                 ← React entry point
     │       ├── App.jsx                  ← ALL components in one file (no sub-components)
-    │       └── styles.css               ← All styles (dark theme, Vertiv branding)
+    │       └── styles.css               ← All styles (dark theme, Enterprise Co branding)
     └── backend/
         ├── main.py                      ← FastAPI + Mangum (Lambda handler)
         ├── requirements.txt             ← fastapi, mangum, snowflake-connector-python, pydantic, uvicorn
@@ -80,12 +80,12 @@ C:\Study\vertiv-data-platform\
 ## 3. Snowflake — Deployed Objects (All Live)
 
 ### Databases
-- VERTIV_RAW — Bronze raw ingestion
-- VERTIV_CURATED — Silver transformation layer
-- VERTIV_ANALYTICS — Gold BI + ML + AI layers
-- VERTIV_PRODUCTS — Data products (Secure Views)
-- VERTIV_CONFIG — STT map, DQ rules, reference data
-- VERTIV_AUDIT — DQ logs, rejected records, quarantine
+- ENTERPRISE_RAW — Bronze raw ingestion
+- ENTERPRISE_CURATED — Silver transformation layer
+- ENTERPRISE_ANALYTICS — Gold BI + ML + AI layers
+- DATA_PRODUCTS — Data products (Secure Views)
+- PLATFORM_CONFIG — STT map, DQ rules, reference data
+- PLATFORM_AUDIT — DQ logs, rejected records, quarantine
 
 ### Warehouses
 - INGEST_WH (XSmall)
@@ -94,11 +94,11 @@ C:\Study\vertiv-data-platform\
 - ML_WH (Large)
 
 ### Roles (9 total)
-VERTIV_PLATFORM_ADMIN, VERTIV_GLOBAL_ANALYST, VERTIV_SAP_EUROPE_READER,
-VERTIV_JDE_AMERICAS_READER, VERTIV_QAD_EMEA_READER, VERTIV_ML_ENGINEER,
-VERTIV_DATA_PRODUCT_OWNER, VERTIV_FINANCE_ANALYST, VERTIV_EXEC_VP
+PLATFORM_ADMIN, GLOBAL_ANALYST, SAP_EUROPE_READER,
+JDE_AMERICAS_READER, QAD_EMEA_READER, ML_ENGINEER,
+ENTERPRISE_DATA_PRODUCT_OWNER, FINANCE_ANALYST, EXEC_VP
 
-### Bronze Tables (all in VERTIV_RAW)
+### Bronze Tables (all in ENTERPRISE_RAW)
 | Schema | Table | Rows |
 |---|---|---|
 | SAP_EUROPE | SALES_ORDERS | 5,000 |
@@ -110,33 +110,33 @@ VERTIV_DATA_PRODUCT_OWNER, VERTIV_FINANCE_ANALYST, VERTIV_EXEC_VP
 | SALESFORCE_GLOBAL | OPPORTUNITIES | 2,500 |
 | REALTIME | ORDER_EVENTS | stream |
 
-### Silver (VERTIV_CURATED)
+### Silver (ENTERPRISE_CURATED)
 - UDFs: GENERATE_HASH_KEY, GENERATE_HASH_DIFF
 - Dynamic Tables: DT_SILVER_ORDER_SAP (5 min lag), DT_SILVER_CUSTOMER_SAP
 - Tables: SALES_ORDER, CUSTOMER
 - DQ audit: DQ_BATCH_LOG, REJECTED_RECORDS, QUARANTINE
 - NOTE: Only SAP has Silver Dynamic Tables. JDE/QAD have no Silver DTs yet.
 
-### Gold BI (VERTIV_ANALYTICS.BI)
+### Gold BI (ENTERPRISE_ANALYTICS.BI)
 - DIM_DATE (5,479 rows), DIM_REGION, DIM_PRODUCT (11 SKUs), DIM_CUSTOMER
 - FACT_SALES_ORDERS — Dynamic Table, 15 min lag
 - MV_REGIONAL_SALES_DAILY — regular VIEW (not materialized — cannot build MV on DT)
 - MV_PRODUCT_REVENUE_MONTHLY — regular VIEW
 
-### Gold ML (VERTIV_ANALYTICS.ML)
+### Gold ML (ENTERPRISE_ANALYTICS.ML)
 - CUSTOMER_REVENUE_FEATURES
 - MODEL_PREDICTIONS
 
-### Gold AI (VERTIV_ANALYTICS.AI)
+### Gold AI (ENTERPRISE_ANALYTICS.AI)
 - CUSTOMER_360_VECTORS (ARRAY type, not VECTOR — Snowflake limitation)
 - CORTEX_SEARCH_INDEX
 
 ### Security
 - Masking policies: MASK_PII_STRING, MASK_EMAIL, MASK_FINANCIAL_NUMBER
 - Row access: REGIONAL_DATA_POLICY
-- 2 Snowflake Shares: VERTIV_SALES_PERFORMANCE_SHARE, VERTIV_CUSTOMER_360_SHARE
+- 2 Snowflake Shares: SALES_PERFORMANCE_SHARE, CUSTOMER_360_SHARE
 
-### Data Products (VERTIV_PRODUCTS) — all Secure Views v1
+### Data Products (DATA_PRODUCTS) — all Secure Views v1
 | ID | Name | Trust Score | Access Tier | Share |
 |---|---|---|---|---|
 | DP-001 | Sales Performance | 98.9% | Restricted | Yes |
@@ -144,7 +144,7 @@ VERTIV_DATA_PRODUCT_OWNER, VERTIV_FINANCE_ANALYST, VERTIV_EXEC_VP
 | DP-003 | Revenue Analytics | 99.6% | Public | No |
 | DP-004 | Opportunity Signals | 98.7% | Restricted | No |
 
-### Data Mesh (VERTIV_PRODUCTS)
+### Data Mesh (DATA_PRODUCTS)
 - DATA_PRODUCT_CATALOG
 - PRODUCT_SLI_LOG
 - PRODUCT_OUTPUT_CONTRACT
@@ -181,7 +181,7 @@ VERTIV_DATA_PRODUCT_OWNER, VERTIV_FINANCE_ANALYST, VERTIV_EXEC_VP
 - ALL components are in App.jsx — no separate component files
 - ALL styles are in styles.css — no CSS modules, no Tailwind
 - Dark theme: background #080b12, surface #0e1320, card #131828
-- Vertiv orange accent: #fe5b1b
+- Enterprise Co orange accent: #fe5b1b
 - Trust score rings are custom SVG (not a library)
 - Search debounce: 350ms
 - Mock search filters MOCK_PRODUCTS client-side (no API call)
@@ -215,13 +215,13 @@ npm run preview      # preview production build
 ### Environment Variables (backend)
 | Variable | Default | Purpose |
 |---|---|---|
-| SNOWFLAKE_ACCOUNT | (required) | drdwkxe-gmc96114 |
-| SNOWFLAKE_USER | (required) | CHANDANPATIL99 |
+| SNOWFLAKE_ACCOUNT | (required) | <SNOWFLAKE_ACCOUNT> |
+| SNOWFLAKE_USER | (required) | <SNOWFLAKE_USER> |
 | SNOWFLAKE_PASSWORD | (required) | from .env file |
 | SNOWFLAKE_WAREHOUSE | ANALYTICS_WH | compute |
-| SNOWFLAKE_DATABASE | VERTIV_PRODUCTS | default DB |
+| SNOWFLAKE_DATABASE | DATA_PRODUCTS | default DB |
 | SNOWFLAKE_SCHEMA | SALES_PERFORMANCE | default schema |
-| SNOWFLAKE_ROLE | VERTIV_GLOBAL_ANALYST | query role |
+| SNOWFLAKE_ROLE | GLOBAL_ANALYST | query role |
 | ALLOWED_ORIGINS | http://localhost:3000 | CORS — comma-separated |
 
 ### API Endpoints
@@ -231,14 +231,14 @@ npm run preview      # preview production build
 | GET | /products | All data products from V_DATA_MARKETPLACE |
 | GET | /products/{product_id} | Single product detail |
 | GET | /search?q= | Cortex AI search, falls back to keyword |
-| POST | /access-request | Logs request to VERTIV_AUDIT.PUBLIC.ACCESS_REQUESTS |
+| POST | /access-request | Logs request to PLATFORM_AUDIT.PUBLIC.ACCESS_REQUESTS |
 | GET | /metrics | Platform stats (product count, avg trust, total rows) |
 
 ### Snowflake Queries
-- /products → SELECT from VERTIV_PRODUCTS.INFORMATION_SCHEMA.V_DATA_MARKETPLACE
-- /search → SNOWFLAKE.CORTEX.SEARCH_PREVIEW on VERTIV_ANALYTICS.AI.CORTEX_SEARCH_INDEX
+- /products → SELECT from DATA_PRODUCTS.INFORMATION_SCHEMA.V_DATA_MARKETPLACE
+- /search → SNOWFLAKE.CORTEX.SEARCH_PREVIEW on ENTERPRISE_ANALYTICS.AI.CORTEX_SEARCH_INDEX
   (falls back to LIKE keyword search if Cortex fails)
-- /access-request → INSERT into VERTIV_AUDIT.PUBLIC.ACCESS_REQUESTS
+- /access-request → INSERT into PLATFORM_AUDIT.PUBLIC.ACCESS_REQUESTS
   (this table must be created by running sql_access_requests.sql first)
 
 ### Lambda Handler
@@ -276,7 +276,7 @@ uvicorn main:app --reload --port 8000
 
 ### AWS SAM Setup (Lambda + API Gateway)
 - Template: marketplace-ui/backend/template.yaml
-- Stack name: vertiv-marketplace-api
+- Stack name: enterprise-marketplace-api
 - Snowflake credentials stored in AWS SSM Parameter Store:
   - /vertiv/snowflake/account (String)
   - /vertiv/snowflake/user (String)
@@ -295,8 +295,8 @@ sam deploy            # subsequent deploys
 |---|---|
 | AWS_ACCESS_KEY_ID | AWS IAM user key |
 | AWS_SECRET_ACCESS_KEY | AWS IAM user secret |
-| SNOWFLAKE_ACCOUNT | drdwkxe-gmc96114 |
-| SNOWFLAKE_USER | CHANDANPATIL99 |
+| SNOWFLAKE_ACCOUNT | <SNOWFLAKE_ACCOUNT> |
+| SNOWFLAKE_USER | <SNOWFLAKE_USER> |
 | SNOWFLAKE_PASSWORD | (from .env) |
 | AMPLIFY_APP_ID | (from Amplify Console after app created) |
 | AMPLIFY_APP_URL | https://main.d1xxxxxxxxxx.amplifyapp.com |
@@ -398,24 +398,24 @@ git add . && git commit -m "message" && git push origin main
 
 | Component | Status | URL |
 |---|---|---|
-| Snowflake platform (all 9 SQL steps) | LIVE | drdwkxe-gmc96114.snowflakecomputing.com |
+| Snowflake platform (all 9 SQL steps) | LIVE | <SNOWFLAKE_ACCOUNT>.snowflakecomputing.com |
 | DQ Streamlit dashboard | LIVE | https://vertiv-data-platform-tech-challange.streamlit.app |
 | Marketplace frontend (local) | WORKING | http://localhost:3000 |
 | Marketplace frontend (Amplify) | LIVE | https://main.d1h1tf3nh9quc5.amplifyapp.com |
 | Marketplace backend (Lambda) | LIVE | https://dli0m5v3qf.execute-api.us-east-1.amazonaws.com/prod |
-| ACCESS_REQUESTS table (Snowflake) | LIVE | VERTIV_AUDIT.PUBLIC.ACCESS_REQUESTS |
+| ACCESS_REQUESTS table (Snowflake) | LIVE | PLATFORM_AUDIT.PUBLIC.ACCESS_REQUESTS |
 
 ---
 
 ## 12. Presentation Context
 
-- Interview: Vertiv (power/cooling/data center company)
+- Interview: Enterprise Co (power/cooling/data center company)
 - Role: Principal Data Architect
 - Format: 60 min — 15 min technical deep dive + 15 min executive pitch + 30 min Q&A
-- Deck: Vertiv_DataPlatform_Presentation.pptx (19 slides, in Downloads, NOT in git)
-  - Vertiv colors: orange #FE5B1B, rainbow bar header
+- Deck: Enterprise Co_DataPlatform_Presentation.pptx (19 slides, in Downloads, NOT in git)
+  - Enterprise Co colors: orange #FE5B1B, rainbow bar header
   - Fonts: Georgia (headings), Arial (body)
-- RTM: Vertiv_RTM_v1.xlsx (35 requirements mapped, in Downloads)
+- RTM: Enterprise Co_RTM_v1.xlsx (35 requirements mapped, in Downloads)
 - Key talking points:
   - Dynamic Tables vs Airflow: no orchestration platform needed
   - SHA256 hash keys: deterministic, no key store, cross-system unique
@@ -444,15 +444,15 @@ git add . && git commit -m "message" && git push origin main
 ```
 Sources: SAP Europe + JDE Americas + QAD EMEA + Salesforce Global
     ↓ write_pandas (Python)
-Bronze (VERTIV_RAW) — raw tables, streams
+Bronze (ENTERPRISE_RAW) — raw tables, streams
     ↓ Dynamic Tables (5 min lag)
-Silver (VERTIV_CURATED) — SHA256 keys, SCD2, DQ audit, DAMA 6-dim validation
+Silver (ENTERPRISE_CURATED) — SHA256 keys, SCD2, DQ audit, DAMA 6-dim validation
     ↓ Dynamic Tables (15 min lag)
-Gold BI (VERTIV_ANALYTICS.BI) — star schema (DIM + FACT)
-Gold ML (VERTIV_ANALYTICS.ML) — PIT-correct feature store, XGBoost predictions
-Gold AI (VERTIV_ANALYTICS.AI) — Cortex vector embeddings, Cortex Search
+Gold BI (ENTERPRISE_ANALYTICS.BI) — star schema (DIM + FACT)
+Gold ML (ENTERPRISE_ANALYTICS.ML) — PIT-correct feature store, XGBoost predictions
+Gold AI (ENTERPRISE_ANALYTICS.AI) — Cortex vector embeddings, Cortex Search
     ↓ Secure Views
-Data Products (VERTIV_PRODUCTS) — DP-001 to DP-004, output contracts, SLOs
+Data Products (DATA_PRODUCTS) — DP-001 to DP-004, output contracts, SLOs
     ↓ Snowflake Shares
 External consumers / AWS Lambda API / Streamlit Dashboard / React Marketplace UI
 ```

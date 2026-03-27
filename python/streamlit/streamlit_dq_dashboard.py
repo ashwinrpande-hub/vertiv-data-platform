@@ -1,7 +1,7 @@
 """
 vertiv-data-platform/python/streamlit/streamlit_dq_dashboard.py
 
-Vertiv Data Platform — Live DQ Dashboard
+Modern AI Data Platform — Live DQ Dashboard
 Deploy TWO ways:
   1. Streamlit-in-Snowflake: Snowsight → Streamlit → New App → paste this
   2. Local: streamlit run streamlit_dq_dashboard.py (needs .env set)
@@ -50,9 +50,9 @@ except Exception:
                 user=os.environ.get("SNOWFLAKE_USER", ""),
                 password=os.environ.get("SNOWFLAKE_PASSWORD", ""),
                 warehouse="ANALYTICS_WH",
-                database="VERTIV_AUDIT",
+                database="PLATFORM_AUDIT",
                 schema="DQ",
-                role="VERTIV_PLATFORM_ADMIN",
+                role="PLATFORM_ADMIN",
             )
         return _conn
 
@@ -62,7 +62,7 @@ except Exception:
 
 # ── Page config ───────────────────────────────────────────────
 st.set_page_config(
-    page_title="Vertiv DQ Dashboard",
+    page_title="Enterprise Co DQ Dashboard",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -90,7 +90,7 @@ st.markdown(
 # ── Header ────────────────────────────────────────────────────
 c1, c2 = st.columns([4, 1])
 with c1:
-    st.title("📊 Vertiv Data Platform — Data Quality Dashboard")
+    st.title("📊 Modern AI Data Platform — Data Quality Dashboard")
     st.caption("DAMA 6-Dimension DQ Monitoring · Real-time · All Source Systems")
 with c2:
     st.write("")
@@ -150,7 +150,7 @@ SELECT
   SUM(RECORDS_FAILED)                        AS TOTAL_FAILED,
   SUM(RECORDS_QUARANTINED)                   AS TOTAL_QUARANTINED,
   ROUND(AVG(PASS_RATE), 2)                   AS AVG_PASS_RATE
-FROM VERTIV_AUDIT.DQ.DQ_BATCH_LOG
+FROM PLATFORM_AUDIT.DQ.DQ_BATCH_LOG
 WHERE RUN_TIMESTAMP >= DATEADD(DAY, -{days}, CURRENT_TIMESTAMP())
   AND SOURCE_SYSTEM IN ({src_list})
 """
@@ -206,7 +206,7 @@ st.subheader("🌡️ DQ Heatmap — Pass Rate % by Source × Dimension")
 HM_SQL = f"""
 SELECT SOURCE_SYSTEM, DAMA_DIMENSION,
        ROUND(AVG(PASS_RATE), 2) AS AVG_PASS_RATE
-FROM VERTIV_AUDIT.DQ.DQ_BATCH_LOG
+FROM PLATFORM_AUDIT.DQ.DQ_BATCH_LOG
 WHERE RUN_TIMESTAMP >= DATEADD(DAY, -{days}, CURRENT_TIMESTAMP())
   AND SOURCE_SYSTEM IN ({src_list})
   AND DAMA_DIMENSION IN ({dim_list})
@@ -268,7 +268,7 @@ with lcol:
     SELECT DATE(RUN_TIMESTAMP) AS RUN_DATE,
            DAMA_DIMENSION,
            ROUND(AVG(PASS_RATE), 2) AS DAILY_PASS_RATE
-    FROM VERTIV_AUDIT.DQ.DQ_BATCH_LOG
+    FROM PLATFORM_AUDIT.DQ.DQ_BATCH_LOG
     WHERE RUN_TIMESTAMP >= DATEADD(DAY, -{days}, CURRENT_TIMESTAMP())
       AND SOURCE_SYSTEM IN ({src_list})
     GROUP BY 1, 2 ORDER BY 1
@@ -318,7 +318,7 @@ with rcol:
     st.subheader("📊 Failure Count by Dimension")
     FAIL_SQL = f"""
     SELECT DAMA_DIMENSION, SUM(RECORDS_FAILED) AS FAILURES
-    FROM VERTIV_AUDIT.DQ.DQ_BATCH_LOG
+    FROM PLATFORM_AUDIT.DQ.DQ_BATCH_LOG
     WHERE RUN_TIMESTAMP >= DATEADD(DAY, -{days}, CURRENT_TIMESTAMP())
       AND SOURCE_SYSTEM IN ({src_list})
     GROUP BY 1 ORDER BY 2 DESC
@@ -425,7 +425,7 @@ REJ_SQL = """
 SELECT TO_CHAR(LOAD_TIMESTAMP,'YYYY-MM-DD HH24:MI') AS TIMESTAMP,
        SOURCE_SYSTEM, SOURCE_TABLE, DAMA_DIMENSION, SEVERITY,
        RULE_VIOLATED, LEFT(REJECTION_REASON,100) AS REASON
-FROM VERTIV_AUDIT.DQ.REJECTED_RECORDS
+FROM PLATFORM_AUDIT.DQ.REJECTED_RECORDS
 ORDER BY LOAD_TIMESTAMP DESC LIMIT 50
 """
 try:
@@ -439,5 +439,5 @@ except Exception as e:
 
 st.divider()
 st.caption(
-    "Vertiv Data Platform  ·  Built on Snowflake  ·  DAMA 6-Dimension DQ Framework"
+    "Modern AI Data Platform  ·  Built on Snowflake  ·  DAMA 6-Dimension DQ Framework"
 )

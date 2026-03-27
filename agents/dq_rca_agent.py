@@ -2,7 +2,7 @@
 Data Quality Monitor + Root Cause Analysis Agent
 =================================================
 A production-quality Claude agent that monitors all active data products
-in the Vertiv Data Marketplace, runs DAMA 6-dimension DQ checks, traces
+in the Enterprise Data Marketplace, runs DAMA 6-dimension DQ checks, traces
 failing rows back through Bronze→Silver→Gold lineage, generates a concise
 RCA report, and fires alerts + GitHub issues for engineering follow-up.
 
@@ -98,9 +98,9 @@ MOCK_LINEAGE = {
         "BATCH_ID": "BATCH-2026-03-26-1400",
         "SOURCE_SYSTEM": "JDE_AMERICAS",
         "SOURCE_TABLE": "RAW_JDE_ORDERS",
-        "BRONZE_TABLE": "VERTIV_RAW.BRONZE.RAW_JDE_SALES_ORDERS",
-        "SILVER_TABLE": "VERTIV_CURATED.SILVER.DT_SILVER_ORDER_JDE",
-        "GOLD_TABLE": "VERTIV_ANALYTICS.GOLD.FACT_SALES_ORDERS",
+        "BRONZE_TABLE": "ENTERPRISE_RAW.BRONZE.RAW_JDE_SALES_ORDERS",
+        "SILVER_TABLE": "ENTERPRISE_CURATED.SILVER.DT_SILVER_ORDER_JDE",
+        "GOLD_TABLE": "ENTERPRISE_ANALYTICS.GOLD.FACT_SALES_ORDERS",
         "LOAD_TIMESTAMP": "2026-03-26T14:00:12Z",
         "ROW_COUNT_BRONZE": 8420,
         "ROW_COUNT_SILVER": 8108,
@@ -109,7 +109,7 @@ MOCK_LINEAGE = {
         "ROOT_CAUSE_HINT": (
             "JDE Americas batch loaded 2026-03-26 14:00 UTC is missing "
             "CURRENCY_CODE for 312 orders originating from subsidiary "
-            "VERTIV-MX (Mexico). Likely cause: JDE field mapping "
+            "ENTERPRISE-MX (Mexico). Likely cause: JDE field mapping "
             "CRCD→CURRENCY_CODE absent in latest JDE connector version 4.2.1."
         ),
     }
@@ -123,7 +123,7 @@ TOOL_DEFINITIONS: list[dict] = [
     {
         "name": "run_snowflake_query",
         "description": (
-            "Execute a SQL query against the Vertiv Snowflake environment. "
+            "Execute a SQL query against the Enterprise Co Snowflake environment. "
             "Returns a list of row dicts. Use for ad-hoc queries not covered "
             "by the other specialised tools."
         ),
@@ -141,7 +141,7 @@ TOOL_DEFINITIONS: list[dict] = [
     {
         "name": "get_marketplace_products",
         "description": (
-            "Return all ACTIVE data products registered in the Vertiv Data "
+            "Return all ACTIVE data products registered in the Enterprise Co Data "
             "Marketplace (V_DATA_MARKETPLACE view). Includes PRODUCT_ID, "
             "PRODUCT_NAME, DOMAIN, OWNER_TEAM, TRUST_SCORE, and STATUS."
         ),
@@ -277,7 +277,7 @@ TOOL_DEFINITIONS: list[dict] = [
 # ---------------------------------------------------------------------------
 # System Prompt
 # ---------------------------------------------------------------------------
-SYSTEM_PROMPT = """You are a Data Quality Monitor Agent for the Vertiv Data Platform.
+SYSTEM_PROMPT = """You are a Data Quality Monitor Agent for the Modern AI Data Platform.
 Your job is to:
 1. Check all active data products in the marketplace for DQ issues (TRUST_SCORE < 95)
 2. For any failing products, run DAMA 6-dimension checks (Completeness, Uniqueness, Validity, Accuracy, Consistency, Timeliness)
@@ -315,10 +315,10 @@ class DQRCAAgent:
         self.sf_account  = os.environ.get("SNOWFLAKE_ACCOUNT", "")
         self.sf_user     = os.environ.get("SNOWFLAKE_USER", "")
         self.sf_password = os.environ.get("SNOWFLAKE_PASSWORD", "")
-        self.sf_database = os.environ.get("SNOWFLAKE_DATABASE", "VERTIV_ANALYTICS")
+        self.sf_database = os.environ.get("SNOWFLAKE_DATABASE", "ENTERPRISE_ANALYTICS")
         self.sf_schema   = os.environ.get("SNOWFLAKE_SCHEMA", "GOLD")
-        self.sf_warehouse = os.environ.get("SNOWFLAKE_WAREHOUSE", "VERTIV_WH")
-        self.sf_role     = os.environ.get("SNOWFLAKE_ROLE", "VERTIV_ANALYST")
+        self.sf_warehouse = os.environ.get("SNOWFLAKE_WAREHOUSE", "ENTERPRISE_WH")
+        self.sf_role     = os.environ.get("SNOWFLAKE_ROLE", "ENTERPRISE_ANALYST")
 
         self._use_mock = not bool(self.sf_account)
         if self._use_mock:
@@ -378,7 +378,7 @@ class DQRCAAgent:
         sql = """
             SELECT PRODUCT_ID, PRODUCT_NAME, DOMAIN, OWNER_TEAM,
                    TRUST_SCORE, STATUS
-            FROM   VERTIV_PRODUCTS.PUBLIC.V_DATA_MARKETPLACE
+            FROM   DATA_PRODUCTS.PUBLIC.V_DATA_MARKETPLACE
             WHERE  STATUS = 'ACTIVE'
             ORDER BY TRUST_SCORE ASC
         """
@@ -392,7 +392,7 @@ class DQRCAAgent:
         sql = f"""
             SELECT PRODUCT_ID, COMPLETENESS, UNIQUENESS, VALIDITY,
                    ACCURACY, CONSISTENCY, TIMELINESS, OVERALL_TRUST_SCORE
-            FROM   VERTIV_ANALYTICS.GOLD.DQ_DIMENSION_SCORES
+            FROM   ENTERPRISE_ANALYTICS.GOLD.DQ_DIMENSION_SCORES
             WHERE  PRODUCT_ID = '{product_id}'
             ORDER BY SCORE_DATE DESC
             LIMIT 1
@@ -411,7 +411,7 @@ class DQRCAAgent:
         sql = f"""
             SELECT ROW_ID, BATCH_ID, SOURCE_SYSTEM,
                    IS_QUARANTINED, QUARANTINE_REASON, LOAD_DATE, ORDER_ID
-            FROM   VERTIV_ANALYTICS.GOLD.FACT_SALES_ORDERS
+            FROM   ENTERPRISE_ANALYTICS.GOLD.FACT_SALES_ORDERS
             WHERE  IS_QUARANTINED = TRUE
               AND  PRODUCT_ID     = '{product_id}'
             ORDER BY LOAD_DATE DESC
@@ -443,7 +443,7 @@ class DQRCAAgent:
                 b.ROW_COUNT_GOLD,
                 b.QUARANTINED_COUNT,
                 b.ROOT_CAUSE_HINT
-            FROM  VERTIV_RAW.AUDIT.BATCH_LINEAGE b
+            FROM  ENTERPRISE_RAW.AUDIT.BATCH_LINEAGE b
             WHERE b.BATCH_ID     = '{batch_id}'
               AND b.SOURCE_SYSTEM = '{source_system}'
             LIMIT 1
@@ -675,7 +675,7 @@ class DQRCAAgent:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     print("\n" + "=" * 70)
-    print("  Vertiv Data Platform — DQ Monitor + RCA Agent")
+    print("  Modern AI Data Platform — DQ Monitor + RCA Agent")
     print("  Model  : claude-sonnet-4-6")
     print(f"  Mode   : {'LIVE (Snowflake)' if os.environ.get('SNOWFLAKE_ACCOUNT') else 'MOCK DATA'}")
     print("=" * 70 + "\n")

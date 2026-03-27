@@ -2,7 +2,7 @@
 """
 vertiv-data-platform/python/data_generator/data_generator.py
 
-Generates synthetic Vertiv sales data for 5 source systems:
+Generates synthetic Enterprise Co sales data for 5 source systems:
   SAP (Europe), JDE (Americas), QAD (EMEA), Salesforce, Kafka events
 
 Usage:
@@ -30,20 +30,20 @@ except ImportError:
 fake   = Faker(["en_US", "de_DE", "en_GB", "fr_FR", "ar_SA"])
 random.seed(42)
 
-# ── Vertiv Product Catalog ────────────────────────────────────
+# ── Enterprise Co Product Catalog ────────────────────────────────────
 PRODUCTS = [
     {"code": "UPS-GXT5-10K",    "name": "Liebert GXT5 10kVA UPS",          "family": "UPS",        "line": "Liebert GXT5",   "price": 8500},
     {"code": "UPS-GXT5-20K",    "name": "Liebert GXT5 20kVA UPS",          "family": "UPS",        "line": "Liebert GXT5",   "price": 14500},
     {"code": "UPS-EXM-80K",     "name": "Liebert EXM 80kVA UPS",           "family": "UPS",        "line": "Liebert EXM",    "price": 42000},
-    {"code": "UPS-APM-120K",    "name": "Vertiv APM 120kVA UPS",            "family": "UPS",        "line": "Vertiv APM",     "price": 68000},
+    {"code": "UPS-APM-120K",    "name": "Enterprise Co APM 120kVA UPS",            "family": "UPS",        "line": "Enterprise Co APM",     "price": 68000},
     {"code": "COOL-DSE-035",    "name": "Liebert DSE 35kW Precision Cool",  "family": "COOLING",    "line": "Liebert DSE",    "price": 18000},
     {"code": "COOL-PCW-030",    "name": "Liebert PCW 30kW Cooling Unit",    "family": "COOLING",    "line": "Liebert PCW",    "price": 22000},
     {"code": "COOL-CRV-25",     "name": "Liebert CRV 25kW Row Cooling",     "family": "COOLING",    "line": "Liebert CRV",    "price": 15000},
     {"code": "PDU-GW-24A",      "name": "Geist Watchdog 24A PDU",           "family": "PDU",        "line": "Geist Watchdog", "price": 1200},
     {"code": "PDU-GW-48A-M",    "name": "Geist Watchdog 48A Metered PDU",   "family": "PDU",        "line": "Geist Watchdog", "price": 2100},
     {"code": "PDU-MPH2-32A",    "name": "MPH2 32A Switched PDU",            "family": "PDU",        "line": "MPH2",           "price": 3200},
-    {"code": "RACK-VR-42U",     "name": "Vertiv VR 42U Server Rack",        "family": "RACK",       "line": "Vertiv VR",      "price": 3500},
-    {"code": "RACK-VR-48U-OF",  "name": "Vertiv VR 48U Open Frame Rack",    "family": "RACK",       "line": "Vertiv VR",      "price": 4200},
+    {"code": "RACK-VR-42U",     "name": "Enterprise Co VR 42U Server Rack",        "family": "RACK",       "line": "Enterprise Co VR",      "price": 3500},
+    {"code": "RACK-VR-48U-OF",  "name": "Enterprise Co VR 48U Open Frame Rack",    "family": "RACK",       "line": "Enterprise Co VR",      "price": 4200},
     {"code": "MON-TRELLIS-ENT", "name": "Trellis Enterprise Platform",      "family": "MONITORING", "line": "Trellis",        "price": 35000},
     {"code": "MON-TRELLIS-SITE","name": "Trellis Site Manager",             "family": "MONITORING", "line": "Trellis",        "price": 12000},
     {"code": "SVC-PM-ANNUAL",   "name": "Preventive Maintenance Annual",    "family": "SERVICES",   "line": "Services",       "price": 5000},
@@ -244,11 +244,11 @@ def load_to_snowflake(df: pd.DataFrame, table: str, conn) -> int:
     df.to_csv(tmp, index=False)
     cur = conn.cursor()
     try:
-        cur.execute(f"PUT file://{tmp} @VERTIV_RAW.STAGE.VERTIV_TMP OVERWRITE=TRUE AUTO_COMPRESS=TRUE")
+        cur.execute(f"PUT file://{tmp} @ENTERPRISE_RAW.STAGE.ENTERPRISE_TMP OVERWRITE=TRUE AUTO_COMPRESS=TRUE")
         cur.execute(f"""
             COPY INTO {table}
-            FROM @VERTIV_RAW.STAGE.VERTIV_TMP/{os.path.basename(tmp)}.gz
-            FILE_FORMAT = (FORMAT_NAME = 'VERTIV_RAW.STAGE.CSV_FORMAT')
+            FROM @ENTERPRISE_RAW.STAGE.ENTERPRISE_TMP/{os.path.basename(tmp)}.gz
+            FILE_FORMAT = (FORMAT_NAME = 'ENTERPRISE_RAW.STAGE.CSV_FORMAT')
             ON_ERROR='CONTINUE'
         """)
         n = cur.fetchone()[0]
@@ -266,7 +266,7 @@ def load_to_snowflake(df: pd.DataFrame, table: str, conn) -> int:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Vertiv Synthetic Data Generator")
+    parser = argparse.ArgumentParser(description="Enterprise Co Synthetic Data Generator")
     parser.add_argument("--rows",       type=int, default=5_000, help="Sales orders per region")
     parser.add_argument("--customers",  type=int, default=500,   help="Customers per region")
     parser.add_argument("--output",     default="./data",         help="Output directory")
@@ -283,7 +283,7 @@ def main():
     start = datetime.strptime(args.start_date, "%Y-%m-%d").date()
     end   = datetime.strptime(args.end_date,   "%Y-%m-%d").date()
 
-    print(f"\n🏭  Vertiv Data Generator")
+    print(f"\n🏭  Enterprise Co Data Generator")
     print(f"    rows={args.rows:,}  customers={args.customers:,}  {start}→{end}\n")
 
     all_customers: dict = {}
@@ -339,20 +339,20 @@ def main():
             user      = os.environ["SNOWFLAKE_USER"],
             password  = os.environ["SNOWFLAKE_PASSWORD"],
             warehouse = "INGEST_WH",
-            database  = "VERTIV_RAW",
-            role      = "VERTIV_PLATFORM_ADMIN",
+            database  = "ENTERPRISE_RAW",
+            role      = "PLATFORM_ADMIN",
         )
         # Create temp stage
-        conn.cursor().execute("CREATE STAGE IF NOT EXISTS VERTIV_RAW.STAGE.VERTIV_TMP")
+        conn.cursor().execute("CREATE STAGE IF NOT EXISTS ENTERPRISE_RAW.STAGE.ENTERPRISE_TMP")
 
         load_map = {
-            "VERTIV_RAW.SAP_EUROPE.CUSTOMERS":             out / "sap_customers.csv",
-            "VERTIV_RAW.SAP_EUROPE.SALES_ORDERS":          out / "sap_sales_orders.csv",
-            "VERTIV_RAW.JDE_AMERICAS.CUSTOMERS":           out / "jde_customers.csv",
-            "VERTIV_RAW.JDE_AMERICAS.SALES_ORDERS":        out / "jde_sales_orders.csv",
-            "VERTIV_RAW.QAD_EMEA.CUSTOMERS":               out / "qad_customers.csv",
-            "VERTIV_RAW.QAD_EMEA.SALES_ORDERS":            out / "qad_sales_orders.csv",
-            "VERTIV_RAW.SALESFORCE_GLOBAL.OPPORTUNITIES":  out / "salesforce_opportunities.csv",
+            "ENTERPRISE_RAW.SAP_EUROPE.CUSTOMERS":             out / "sap_customers.csv",
+            "ENTERPRISE_RAW.SAP_EUROPE.SALES_ORDERS":          out / "sap_sales_orders.csv",
+            "ENTERPRISE_RAW.JDE_AMERICAS.CUSTOMERS":           out / "jde_customers.csv",
+            "ENTERPRISE_RAW.JDE_AMERICAS.SALES_ORDERS":        out / "jde_sales_orders.csv",
+            "ENTERPRISE_RAW.QAD_EMEA.CUSTOMERS":               out / "qad_customers.csv",
+            "ENTERPRISE_RAW.QAD_EMEA.SALES_ORDERS":            out / "qad_sales_orders.csv",
+            "ENTERPRISE_RAW.SALESFORCE_GLOBAL.OPPORTUNITIES":  out / "salesforce_opportunities.csv",
         }
         for table, csv_path in load_map.items():
             if csv_path.exists():

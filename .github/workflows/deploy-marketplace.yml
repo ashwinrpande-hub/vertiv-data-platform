@@ -57,7 +57,7 @@ jobs:
       - name: SAM deploy
         run: |
           sam deploy \
-            --stack-name vertiv-marketplace-api \
+            --stack-name enterprise-marketplace-api \
             --capabilities CAPABILITY_IAM \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
@@ -68,7 +68,7 @@ jobs:
       - name: Output API URL
         run: |
           API_URL=$(aws cloudformation describe-stacks \
-            --stack-name vertiv-marketplace-api \
+            --stack-name enterprise-marketplace-api \
             --query 'Stacks[0].Outputs[?OutputKey==`ApiUrl`].OutputValue' \
             --output text)
           echo "API_URL=$API_URL" >> $GITHUB_ENV
